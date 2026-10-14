@@ -67,6 +67,7 @@ public partial class MainWindow : Window
         _overlay.SetRegion(_region, _desktop);
         _overlay.RegionChanged += region => SetRegion(region, persist: false);
         _overlay.EditFinished += () => SaveSettings();
+        _overlay.PresetRequested += ApplyOverlayPreset;
         _overlay.EditorClosed += commit => { if (!_closing) EndCellEdit(commit, restoreFocus: _platform.ForegroundWindow == _overlay.Handle); };
         _controller.Changed += ControllerChanged;
         _attachment.Changed += AttachmentChanged;
@@ -105,6 +106,7 @@ public partial class MainWindow : Window
             {
                 _draftHotkey = new Hotkey(3, 0x45);
                 HotkeyInput.Text = GlobalHotkeys.Label(_draftHotkey);
+                RefreshVisualState();
                 ShowStatus("Press Apply to use Ctrl + Alt + E to lock and unlock. Adjust cursor area will remain available by button.");
             }
             else if (_editing) EndCellEdit(true, true);
@@ -304,9 +306,9 @@ public partial class MainWindow : Window
             JailState.Locked => "LOCKED", JailState.Passing => "TEMPORARILY UNLOCKED",
             JailState.ReleaseFailed => "RETRYING RELEASE", _ => _editing ? "EDITING" : "READY"
         };
-        StatusDot.Fill = new SolidColorBrush(_controller.State == JailState.ReleaseFailed ? Color.FromRgb(255, 159, 120) : Color.FromRgb(145, 242, 195));
         EscapeHint.Text = $"{GlobalHotkeys.Label(_settings.ToggleHotkey)}  lock / unlock     ·     Ctrl + Alt + Esc  release";
         RefreshAttachmentUi();
+        RefreshVisualState();
         if (_tray is not null) _tray.Text = "CursorJail · " + StateLabel.Text.ToLowerInvariant();
     }
 
@@ -394,7 +396,8 @@ public partial class MainWindow : Window
         { ShowStatus("Use Ctrl, Alt, Shift, Scroll Lock or a function key. Ctrl + Alt + Esc is reserved for release."); return; }
         _draftHotkey = candidate;
         HotkeyInput.Text = GlobalHotkeys.Label(candidate);
-        ShowStatus("Press Apply to use this shortcut.");
+        RefreshVisualState();
+        ShowStatus(candidate == _settings.ToggleHotkey ? "This shortcut is already active." : "Press Apply to use this shortcut.");
     }
     private void ApplyHotkey(object sender, RoutedEventArgs e)
     {

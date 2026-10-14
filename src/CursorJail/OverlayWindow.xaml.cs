@@ -17,6 +17,14 @@ public partial class OverlayWindow : Window
     internal event Action<ScreenRect>? RegionChanged;
     internal event Action? EditFinished;
     internal event Action<bool>? EditorClosed;
+    internal event Action<CellLayout>? PresetRequested;
+
+    internal void SetPresetScope(bool attached) => FullPreset.ToolTip = attached ? "Use the full app area" : "Use the full current monitor";
+
+    private void ChoosePreset(object sender, RoutedEventArgs e)
+    {
+        if (_editing && Enum.TryParse<CellLayout>((string)((Button)sender).Tag, out var layout)) PresetRequested?.Invoke(layout);
+    }
 
     public OverlayWindow()
     {
@@ -86,9 +94,9 @@ public partial class OverlayWindow : Window
     private void UpdateHint()
     {
         bool compact = Canvas.ActualWidth < 420 || Canvas.ActualHeight < 220;
-        HintSurface.Padding = compact ? new Thickness(8) : new Thickness(24, 16, 24, 16);
+        HintSurface.Padding = compact ? new Thickness(6) : new Thickness(24, 16, 24, 16);
         EditInstructions.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        EditBrand.Visibility = Canvas.ActualHeight < 150 ? Visibility.Collapsed : Visibility.Visible;
+        EditBrand.Visibility = Canvas.ActualHeight < 190 ? Visibility.Collapsed : Visibility.Visible;
     }
     private nint Hook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
@@ -108,6 +116,9 @@ public partial class OverlayWindow : Window
     }
     private void BeginDrag(object sender, MouseButtonEventArgs e)
     {
+        for (DependencyObject? node = e.OriginalSource as DependencyObject; node is not null;
+            node = node is Visual ? VisualTreeHelper.GetParent(node) : (node as FrameworkContentElement)?.Parent)
+            if (node is System.Windows.Controls.Primitives.ButtonBase) return;
         if (!_editing || !NativeMethods.GetCursorPos(out _dragStart)) return;
         _edges = EdgesAt(e.GetPosition(this));
         _dragRegion = _region;

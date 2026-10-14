@@ -50,7 +50,7 @@ public partial class MainWindow
         AttachmentDetails.Text = profile is null ? "Attach once. Lock automatically only while that game has focus."
             : $"{profile.Name} · {(_attachment.Enabled ? "Automatic locking enabled" : "Automatic locking paused")}";
         CellControls.Visibility = profile is null ? Visibility.Collapsed : Visibility.Visible;
-        DetachButton.IsEnabled = profile is not null;
+        AttachButton.Content = profile is null ? "Attach to app" : "Detach from app";
         GlowCheck.IsEnabled = profile is null;
         EditHint.Text = _hotkeys?.EditReady == true || _smoke ? "The border is hidden when an app is attached. Ctrl + Alt + E adjusts the cursor area."
             : "The border is hidden when an app is attached. Use Adjust cursor area to edit.";
@@ -79,6 +79,12 @@ public partial class MainWindow
     {
         if (WindowPicker.SelectedItem is WindowItem window) AttachHandle(window.Handle);
         else ShowStatus("Choose an open game window first.");
+    }
+
+    private void ToggleAttachment(object sender, RoutedEventArgs e)
+    {
+        if (_attachment.Profile is not null) DetachWindow(sender, e);
+        else AttachWindow(sender, e);
     }
 
     private void AttachHandle(nint handle)
@@ -190,6 +196,7 @@ public partial class MainWindow
         else _overlay.SetRegion(_region, _desktop);
         if (!_editing) return;
         Hide();
+        _overlay.SetPresetScope(_attachment.Profile is not null);
         _overlay.SetMode(true, true);
         NativeMethods.SetForegroundWindow(_overlay.Handle);
         ShowStatus("Adjust the cursor area. Done returns to the app; Esc cancels and pauses automatic locking.");
@@ -301,6 +308,8 @@ public partial class MainWindow
             var profile = new AttachmentProfile(Guid.NewGuid().ToString("N"), "Drag test", target.Identity, CellLayout.MatchClient, default);
             if (!_attachment.Attach(profile, target)) throw new InvalidOperationException("Cannot attach drag test window.");
             _attachment.SetEditing(true); // Keep the real cursor free throughout verification.
+            _editing = true;
+            _overlay.SetMode(editing: true, visible: false);
             UpdateAttachedPreview();
             var bounds = _editorBounds;
             var smaller = _region.Resize(-40, -30, ResizeEdge.Right | ResizeEdge.Bottom, bounds);
@@ -314,9 +323,19 @@ public partial class MainWindow
                 if (_attachment.Profile!.Cell(bounds) != next)
                     throw new InvalidOperationException("Attached drag did not retain the custom area.");
             }
+            foreach (var layout in new[] { CellLayout.Center16By9, CellLayout.Center21By9, CellLayout.MatchClient })
+            {
+                string name = layout == CellLayout.MatchClient ? "FullPreset" : layout == CellLayout.Center16By9 ? "WidePreset" : "UltrawidePreset";
+                ((Button)_overlay.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (_attachment.Profile!.Layout != layout || _attachment.Window != target
+                    || !NativeMethods.GetWindowRect(_overlay.Handle, out var actual) || actual.ToScreenRect() != _region)
+                    throw new InvalidOperationException("Overlay preset did not update the attached area in place.");
+            }
         }
         finally
         {
+            _editing = false;
+            _overlay.SetMode(editing: false, visible: false);
             _attachment.Detach();
             _region = original;
             _overlay.SetRegion(original, _desktop);

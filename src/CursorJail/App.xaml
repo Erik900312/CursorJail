@@ -23,8 +23,8 @@
       <Setter Property="BorderBrush" Value="{StaticResource Line}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="12" />
-      <Setter Property="Padding" Value="18" />
-      <Setter Property="Margin" Value="0,0,0,14" />
+      <Setter Property="Padding" Value="14" />
+      <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
     <Style TargetType="Button">
       <Setter Property="Foreground" Value="{StaticResource Ink}" />
@@ -166,8 +166,10 @@
       </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="ScrollBar">
-      <Setter Property="Width" Value="10" />
+      <Setter Property="Width" Value="8" />
       <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Opacity" Value="0" />
+
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar">
         <Track x:Name="PART_Track" IsDirectionReversed="True">
           <Track.DecreaseRepeatButton><RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton>
@@ -175,6 +177,11 @@
           <Track.IncreaseRepeatButton><RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton>
         </Track>
       </ControlTemplate></Setter.Value></Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type ScrollViewer}}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger>
+        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType={x:Type ScrollViewer}}}" Value="True"><Setter Property="Opacity" Value="1" /></DataTrigger>
+        <Trigger Property="IsMouseCaptureWithin" Value="True"><Setter Property="Opacity" Value="1" /></Trigger>
+      </Style.Triggers>
     </Style>
   </Application.Resources>
 </Application>

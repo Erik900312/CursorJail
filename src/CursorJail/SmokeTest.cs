@@ -71,6 +71,7 @@ internal static class SmokeTest
         {
             window.VerifyAttachedDraggingForSmoke(dragTarget);
             results.Add("PASS Attached resize smaller, move, and resize larger update the visible overlay immediately");
+            results.Add("PASS Overlay Full, 16:9 and 21:9 presets keep the attachment and update its visible bounds");
         }
         else results.Add("NOTICE No suitable external window available for attached drag verification");
         using (var process = NativeMethods.OpenProcess(0x1000, false, (uint)Environment.ProcessId))
@@ -99,11 +100,22 @@ internal static class SmokeTest
         ((Button)window.FindName("LockButton")).IsEnabled = true; // Presentation only; no input loop is run.
         // Render without presenting the panel or overlay to the input desktop.
         Render(window, Path.Combine(outputDirectory, "CursorJail-panel.png"), 620, 930, 1);
+        Check(((ScrollViewer)window.FindName("PanelScroll")).ScrollableHeight < 1, "Collapsed manual panel fits without scrolling", results);
+        Check(((Button)window.FindName("AttachButton")).Style == window.FindResource("Primary")
+            && ((Button)window.FindName("LockButton")).Style != window.FindResource("Primary"), "Automatic setup has a single primary action", results);
+        var manual = (Expander)window.FindName("ManualSetup");
+        manual.IsExpanded = true;
+        Check(((Button)window.FindName("LockButton")).Style == window.FindResource("Primary")
+            && ((Button)window.FindName("AttachButton")).Style != window.FindResource("Primary"), "Manual expansion switches the primary action", results);
+        manual.IsExpanded = false;
+        Check(!((Button)window.FindName("HotkeyApply")).IsEnabled, "Unchanged shortcut Apply is disabled", results);
         Render(window, Path.Combine(outputDirectory, "CursorJail-panel-150.png"), 620, 930, 1.5);
         Render(window, Path.Combine(outputDirectory, "CursorJail-panel-compact.png"), 570, 600, 1);
         results.Add("Control panel rendered at 100%, 150%, and compact height");
         window.PreviewAttachmentForSmoke();
         Render(window, Path.Combine(outputDirectory, "CursorJail-attached.png"), 620, 930, 1);
+        Check(((ScrollViewer)window.FindName("PanelScroll")).ScrollableHeight < 1, "Collapsed attached panel fits without scrolling", results);
+        Check((string)((Button)window.FindName("AttachButton")).Content == "Detach from app", "Attached setup uses the combined detach action", results);
         Render(window, Path.Combine(outputDirectory, "CursorJail-attached-150.png"), 620, 930, 1.5);
         Render(window, Path.Combine(outputDirectory, "CursorJail-attached-compact.png"), 570, 600, 1);
         results.Add("Attached mode rendered at 100%, 150%, and compact height");

@@ -12,7 +12,13 @@
           <TextBlock x:Name="EditBrand" Text="CURSORJAIL" FontSize="11" FontWeight="Bold" Foreground="#91F2C3" HorizontalAlignment="Center" />
           <TextBlock x:Name="EditInstructions" Text="Drag to move · Pull an edge to resize" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,4" HorizontalAlignment="Center" />
           <TextBlock x:Name="Dimensions" Foreground="#A5B1C2" HorizontalAlignment="Center" />
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+          <StackPanel x:Name="PresetPills" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <StackPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="MinHeight" Value="22" /><Setter Property="Padding" Value="8,3" /><Setter Property="FontSize" Value="11" /></Style></StackPanel.Resources>
+            <Button x:Name="FullPreset" Content="Full" Tag="MatchClient" Click="ChoosePreset" Margin="0,0,4,0" ToolTip="Use the full app area or current monitor" AutomationProperties.Name="Full cursor area" />
+            <Button x:Name="WidePreset" Content="16:9" Tag="Center16By9" Click="ChoosePreset" Margin="0,0,4,0" ToolTip="Center a 16:9 cursor area" AutomationProperties.Name="Center 16 by 9 cursor area" />
+            <Button x:Name="UltrawidePreset" Content="21:9" Tag="Center21By9" Click="ChoosePreset" ToolTip="Center a 21:9 cursor area" AutomationProperties.Name="Center 21 by 9 cursor area" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
             <Button Content="Done" Click="Done" Style="{StaticResource Primary}" MinHeight="28" Padding="10,5" FontSize="12" Margin="0,0,8,0" ToolTip="Save the cursor area and return to the app" />
             <Button Content="Cancel" Click="Cancel" MinHeight="28" Padding="10,5" FontSize="12" />
           </StackPanel>

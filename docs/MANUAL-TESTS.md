@@ -23,13 +23,19 @@ Run these on Windows before a release intended for broader use. Always keep the 
 - Upgrade v1 settings with presets/custom shortcuts, including Ctrl+Alt+E. Preserve them and create a source backup. An existing Ctrl+Alt+E toggle takes priority over the editor shortcut.
 - Save/reload/delete cursor areas and remembered profiles, restart, and verify persistence. HWNDs/process IDs must not appear in settings. Blank numeric input must not become zero.
 - Hide/reopen from the tray, exit while locked, and confirm cursor freedom and removal of the tray icon and hotkeys.
+- Check the combined Attach/Detach action, neutral detached status, amber paused status and green live attached/locked status. Expanding Manual area setup must move primary emphasis to manual locking.
+- The collapsed panel at its default size must fit without scrolling. Expand sections and check mouse-wheel, keyboard and thumb scrolling with the slim dark scrollbar.
+- In the overlay, choose Full, 16:9 and 21:9 without returning to the panel. Keep the app attached, then cancel and verify its previous area is restored. At 160 × 100, all three presets and Done/Cancel must fit.
+- Apply starts disabled for an unchanged shortcut, enables for a new valid shortcut (including Ctrl+Alt+E), stays enabled after a registration conflict, and disables after saving.
 
-## Verification performed for v0.2.1
+## Verification performed for v0.3.0
 
 73 deterministic specifications cover legacy safety, automatic focus/return, emergency pause, window identity/instance/relaunch, relative margins, aspect presets, editing, window moves, migration and shortcut preservation. Release compilation passes with zero warnings.
 
 Native smoke checks cover HWND/DPI/bounds/styles, focus/move hooks, executable path queries, external client coordinates, icons, shortcut replacement/conflicts, hidden picker hit testing and enabled preference on normal close. Manual/attached panels render at 100%, 150% and compact height; editor renders include 160 × 100. The packaged executable and GitHub Windows CI are also checked before release.
 
-The attached-drag regression checks the same region callback used while the mouse is captured: shrinking, moving and enlarging must immediately change the overlay's native bounds and preserve the custom area. It reproduced the stale overlay before the v0.2.1 fix and passed on the corrected packaged executable.
+The attached-drag regression checks the same region callback used while the mouse is captured: shrinking, moving and enlarging must immediately change the overlay's native bounds and preserve the custom area. It reproduced the stale overlay before the v0.2.1 fix and passed on the corrected packaged executable. Live dragging through computer use remains unverified; this update does not change that input path.
+
+The UX smoke checks confirm no scrolling in either collapsed default panel, switching primary action with Manual area setup, disabling unchanged-shortcut Apply, the combined Attach/Detach label, and all three overlay presets retaining the live attachment and updating native bounds.
 
 Actual game input, physical mixed-DPI transitions, Fullscreen Optimizations, exclusive fullscreen, ARM64 execution and individual anti-cheat compatibility remain hardware/game acceptance work.

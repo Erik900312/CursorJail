@@ -1,8 +1,8 @@
 # CursorJail
 
-**[Download CursorJail.exe for Windows x64](https://github.com/Erik900312/CursorJail/releases/download/v0.2.1/CursorJail.exe)** — download and run the app directly.
+**[Download CursorJail.exe for Windows x64](https://github.com/Erik900312/CursorJail/releases/download/v0.3.0/CursorJail.exe)** — download and run the app directly.
 
-Prefer a ZIP? **[Download CursorJail-win-x64.zip](https://github.com/Erik900312/CursorJail/releases/download/v0.2.1/CursorJail-win-x64.zip)**, extract it, then run **CursorJail.exe**. GitHub's green **Code → Download ZIP** button downloads the source code and does not include the app executable.
+Prefer a ZIP? **[Download CursorJail-win-x64.zip](https://github.com/Erik900312/CursorJail/releases/download/v0.3.0/CursorJail-win-x64.zip)**, extract it, then run **CursorJail.exe**. GitHub's green **Code → Download ZIP** button downloads the source code and does not include the app executable.
 
 **CursorJail** is a portable Windows desktop utility that keeps your mouse cursor inside a chosen rectangular area. Built for ultrawide and multi-monitor setups, it prevents your pointer from accidentally leaving a game window or clicking onto another monitor.
 
@@ -32,11 +32,11 @@ It uses Windows’ native `ClipCursor` API and runs in the background with its o
 | **Ctrl + Alt + Esc** | Emergency release cursor and pause automatic locking |
 | **Left Alt (Hold)** | Temporarily unlock cursor (configurable to supported mouse buttons) |
 
-## Compatibility & Scope (v0.2.1 Preview)
+## Compatibility & Scope (v0.3.0 Preview)
 
 - **Intended Use:** Designed for **windowed** and **borderless windowed** games and applications.
 - **What It Does Not Do:** CursorJail only confines the OS cursor region. It does not detect black bars, change game resolutions, or modify a game's internal camera or edge-scrolling logic.
-- **Testing Status:** Version `0.2.1` is a preview release (passing 73 automated specs, native smoke checks, and CI build checks). Exclusive fullscreen titles, specific anti-cheat systems, and physical mixed-DPI monitor setups require further hardware and per-game testing.
+- **Testing Status:** Version `0.3.0` is a preview release (passing 73 automated specs, native smoke checks, and CI build checks). Exclusive fullscreen titles, specific anti-cheat systems, and physical mixed-DPI monitor setups require further hardware and per-game testing.
 
 ## Tech Stack
 

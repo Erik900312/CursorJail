@@ -8,7 +8,7 @@
   <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="12" GlassFrameThickness="0" /></shell:WindowChrome.WindowChrome>
   <Border Background="#10141D" TextElement.Foreground="{StaticResource Ink}" BorderBrush="#303A4B" BorderThickness="1" CornerRadius="12">
     <Grid>
-      <Grid.RowDefinitions><RowDefinition Height="62" /><RowDefinition Height="*" /><RowDefinition Height="110" /></Grid.RowDefinitions>
+      <Grid.RowDefinitions><RowDefinition Height="54" /><RowDefinition Height="*" /><RowDefinition Height="98" /></Grid.RowDefinitions>
       <Grid Margin="22,0,14,0" MouseLeftButtonDown="DragTitle">
         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -16,20 +16,20 @@
             <Canvas Width="32" Height="32"><Path Stroke="#91F2C3" StrokeThickness="2.5" Data="M 11,2 L 2,2 2,11 M 21,2 L 30,2 30,11 M 30,21 L 30,30 21,30 M 11,30 L 2,30 2,21" /><Path Fill="#F1F5FA" Data="M 12,9 L 12,23 16,19 20,26 23,24 19,18 25,18 Z" /></Canvas>
           </Viewbox>
           <TextBlock Text="CursorJail" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <TextBlock Text="v0.2.1" Foreground="#7D8A9D" FontSize="11" VerticalAlignment="Center" Margin="10,3,0,0" />
+          <TextBlock Text="v0.3.0" Foreground="#7D8A9D" FontSize="11" VerticalAlignment="Center" Margin="10,3,0,0" />
         </StackPanel>
         <Button Grid.Column="1" Content="—" Background="Transparent" BorderThickness="0" Padding="11,5" Margin="0,0,4,0" Click="HideToTray" ToolTip="Minimize to system tray" AutomationProperties.Name="Minimize to system tray" />
         <Button Grid.Column="2" Content="✕" Background="Transparent" BorderThickness="0" Padding="11,5" Click="ExitApp" ToolTip="Exit and release cursor" AutomationProperties.Name="Exit CursorJail" />
       </Grid>
-      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="22,6,22,8">
+      <ScrollViewer x:Name="PanelScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="22,6,22,8">
         <StackPanel>
-          <TextBlock Text="Keep your cursor in the game." FontSize="25" FontWeight="SemiBold" Margin="0,0,0,5" />
-          <TextBlock Text="Lock only while your selected app is active." Foreground="{StaticResource Muted}" Margin="0,0,0,20" />
-          <Border Style="{StaticResource Card}" Background="#14261F" BorderBrush="#2F5140">
+          <TextBlock Text="Keep your cursor in the game." FontSize="19" FontWeight="SemiBold" Margin="0,0,0,3" />
+          <TextBlock Text="Lock only while your selected app is active." Foreground="{StaticResource Muted}" Margin="0,0,0,12" />
+          <Border x:Name="StatusCard" Style="{StaticResource Card}">
             <StackPanel>
               <StackPanel Orientation="Horizontal">
-                <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#91F2C3" Margin="0,0,8,0" />
-                <TextBlock x:Name="StateLabel" Text="READY" Foreground="{StaticResource Accent}" FontSize="11" FontWeight="Bold" />
+                <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#A5B1C2" Margin="0,0,8,0" />
+                <TextBlock x:Name="StateLabel" Text="READY" Foreground="{StaticResource Muted}" FontSize="11" FontWeight="Bold" />
                 <TextBlock x:Name="RegionSummary" Foreground="{StaticResource Muted}" FontSize="11" Margin="15,0,0,0" />
               </StackPanel>
               <TextBlock x:Name="StatusMessage" Text="Ready when you are." Margin="0,9,0,0" TextWrapping="Wrap" />
@@ -48,11 +48,10 @@
                     </Grid></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                   <Button Grid.Column="1" Content="↻" Margin="8,0,8,0" Click="RefreshWindows" ToolTip="Refresh open windows" AutomationProperties.Name="Refresh open windows" />
-                  <Button Grid.Column="2" Content="Attach to app" Click="AttachWindow" Style="{StaticResource Primary}" MinHeight="36" Padding="12,8" />
+                  <Button x:Name="AttachButton" Grid.Column="2" Content="Attach to app" Click="ToggleAttachment" Style="{StaticResource Primary}" MinHeight="36" Padding="12,8" />
                 </Grid>
                 <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                   <Button Content="⌖  Pick a window on screen" Click="PickWindow" HorizontalAlignment="Left" />
-                  <Button x:Name="DetachButton" Grid.Column="1" Content="Detach from app" Click="DetachWindow" />
                 </Grid>
                 <TextBlock x:Name="AttachmentDetails" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                 <StackPanel x:Name="CellControls" Margin="0,14,0,0" Visibility="Collapsed">
@@ -63,7 +62,7 @@
                   </UniformGrid>
                   <TextBlock x:Name="CellDescription" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
                 </StackPanel>
-                <Expander Header="Manual area setup" Margin="0,14,0,0">
+                <Expander x:Name="ManualSetup" Header="Manual area setup" Margin="0,10,0,0" Expanded="ManualContextChanged" Collapsed="ManualContextChanged">
                   <StackPanel Margin="0,8,0,0">
                 <Button Content="Use selected window" Click="SnapWindow" HorizontalAlignment="Left" Margin="0,0,0,6" ToolTip="Set a manual cursor area from the app selected above. Lock it with your shortcut." />
                 <CheckBox x:Name="TrimCheck" Content="Exclude title bar and window borders" IsChecked="True" Click="TrimChanged" />
@@ -104,7 +103,7 @@
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
                   <StackPanel><TextBlock Text="Lock / unlock shortcut" Style="{StaticResource Label}" /><TextBox x:Name="HotkeyInput" IsReadOnly="True" PreviewKeyDown="CaptureHotkey" ToolTip="Click here and press your shortcut, then Apply" AutomationProperties.Name="Lock and unlock shortcut; press a key combination" /></StackPanel>
-                  <Button Grid.Column="1" Content="Apply" Margin="8,20,18,0" VerticalAlignment="Bottom" Click="ApplyHotkey" />
+                  <Button x:Name="HotkeyApply" Grid.Column="1" Content="Apply" Margin="8,20,18,0" VerticalAlignment="Bottom" Click="ApplyHotkey" IsEnabled="False" />
                   <StackPanel Grid.Column="2"><TextBlock Text="Hold to unlock" Style="{StaticResource Label}" /><ComboBox x:Name="PassPicker" SelectionChanged="PassChanged" AutomationProperties.Name="Hold to temporarily unlock the cursor" ToolTip="Hold this key or button to temporarily release the cursor"><ComboBoxItem Content="Left Alt" /><ComboBoxItem Content="Middle mouse" /><ComboBoxItem Content="Mouse back" /><ComboBoxItem Content="Mouse forward" /></ComboBox></StackPanel>
                 </Grid>
                 <CheckBox x:Name="GlowCheck" Content="Show area border in manual mode" IsChecked="True" Click="GlowChanged" />
@@ -134,7 +133,7 @@
         <StackPanel>
           <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
             <Button x:Name="EditButton" Content="Adjust cursor area" Click="ToggleEdit" Margin="0,0,10,0" MinHeight="44" />
-            <Button x:Name="LockButton" Grid.Column="1" Content="Lock cursor in 3s" Style="{StaticResource Primary}" Click="LockFromPanel" />
+            <Button x:Name="LockButton" Grid.Column="1" Content="Lock cursor in 3s" MinHeight="44" Click="LockFromPanel" />
           </Grid>
           <TextBlock x:Name="EscapeHint" Text="Ctrl + Alt + L  lock / unlock     ·     Ctrl + Alt + Esc  release" Foreground="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,12,0,0" />
         </StackPanel>
