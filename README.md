@@ -1,5 +1,9 @@
 # CursorJail
 
+**[Download CursorJail.exe for Windows x64](https://github.com/Erik900312/CursorJail/releases/download/v0.2.0/CursorJail.exe)** — download and run the app directly.
+
+Prefer a ZIP? **[Download CursorJail-win-x64.zip](https://github.com/Erik900312/CursorJail/releases/download/v0.2.0/CursorJail-win-x64.zip)**, extract it, then run **CursorJail.exe**. GitHub's green **Code → Download ZIP** button downloads the source code and does not include the app executable.
+
 **CursorJail** is a portable Windows desktop utility that keeps your mouse cursor inside a chosen rectangular area. Built for ultrawide and multi-monitor setups, it prevents your pointer from accidentally leaving a game window or clicking onto another monitor.
 
 It uses Windows’ native `ClipCursor` API and runs in the background with its overlay hidden during play, keeping keyboard and mouse focus on your game.
@@ -14,7 +18,7 @@ It uses Windows’ native `ClipCursor` API and runs in the background with its o
 
 ## Quick Start
 
-1. **Run:** Extract the portable x64 ZIP and launch **`CursorJail.exe`** (self-contained .NET 10 build; no runtime installation required).
+1. **Run:** Download and launch **`CursorJail.exe`** using the link above, or extract the portable x64 ZIP and run the EXE inside (self-contained .NET 10 build; no runtime installation required).
 2. **Select:** Choose an open window from the dropdown and click **Attach to app**, or use **Pick a window on screen**.
 3. **Size:** Select **Full app area**, **Center 16:9**, **Center 21:9**, or drag the overlay to a custom size.
 4. **Play:** Click **Done**. Cursor locking activates automatically whenever the attached window is in focus.
