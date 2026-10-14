@@ -64,6 +64,15 @@ internal static class SmokeTest
             Check(native.TryClientRegion(identified, out _), "Foreign window client area resolves in physical pixels", results);
         }
         else results.Add("NOTICE No external identifiable window available for identity check");
+        var dragTarget = candidates.Select(w => native.TryIdentifyWindow(w.Handle, out var target) ? target : null)
+            .FirstOrDefault(w => w is not null && native.TryClientRegion(w, out var area) && area.Width >= 240 && area.Height >= 160
+                && area.FitInside(WindowsPlatform.DesktopBounds(WindowsPlatform.Monitors())) == area);
+        if (dragTarget is not null)
+        {
+            window.VerifyAttachedDraggingForSmoke(dragTarget);
+            results.Add("PASS Attached resize smaller, move, and resize larger update the visible overlay immediately");
+        }
+        else results.Add("NOTICE No suitable external window available for attached drag verification");
         using (var process = NativeMethods.OpenProcess(0x1000, false, (uint)Environment.ProcessId))
         {
             var executable = new System.Text.StringBuilder(32768);

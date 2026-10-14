@@ -8,6 +8,7 @@ Run these on Windows before a release intended for broader use. Always keep the 
 - Test native-windowed and borderless canvases: exclude real native chrome, preserve full borderless height. Custom client-drawn title bars require margins.
 - Full app area, Center 16:9 and Center 21:9 on 5120 × 1440 should yield 5120 × 1440, 2560 × 1440 and 3360 × 1440 cursor areas. Check negative monitor origins.
 - Resize an attached cursor area: preserve the attachment and keep it within the client area. Custom margins scale; aspect presets retain their aspect. Done/Cancel must fit at 160 × 100.
+- While attached, shrink and enlarge every edge/corner and move the rectangle. The visible boundary and dimensions must follow each pointer movement immediately, before releasing the mouse button.
 - Done/clicking back into the game commits and hides the editor. Esc/Cancel restores the initial cursor area and pauses. Ctrl+Alt+E opens/finishes editing when available; only explicit editing/picking may take foreground focus.
 - Focus the target and toggle the cursor area. Confirm clicks reach the window and the pointer stops at the selected edges. Repeat with the three-second button and cancel the countdown using both global shortcuts.
 - Automatic mode: Alt+Tab/Win/Ctrl+Shift+Esc, minimize and focus loss release; returning to the selected game reacquires. Manual mode remains released until toggled.
@@ -23,10 +24,12 @@ Run these on Windows before a release intended for broader use. Always keep the 
 - Save/reload/delete cursor areas and remembered profiles, restart, and verify persistence. HWNDs/process IDs must not appear in settings. Blank numeric input must not become zero.
 - Hide/reopen from the tray, exit while locked, and confirm cursor freedom and removal of the tray icon and hotkeys.
 
-## Verification performed for v0.2.0
+## Verification performed for v0.2.1
 
 73 deterministic specifications cover legacy safety, automatic focus/return, emergency pause, window identity/instance/relaunch, relative margins, aspect presets, editing, window moves, migration and shortcut preservation. Release compilation passes with zero warnings.
 
 Native smoke checks cover HWND/DPI/bounds/styles, focus/move hooks, executable path queries, external client coordinates, icons, shortcut replacement/conflicts, hidden picker hit testing and enabled preference on normal close. Manual/attached panels render at 100%, 150% and compact height; editor renders include 160 × 100. The packaged executable and GitHub Windows CI are also checked before release.
+
+The attached-drag regression checks the same region callback used while the mouse is captured: shrinking, moving and enlarging must immediately change the overlay's native bounds and preserve the custom area. It reproduced the stale overlay before the v0.2.1 fix and passed on the corrected packaged executable.
 
 Actual game input, physical mixed-DPI transitions, Fullscreen Optimizations, exclusive fullscreen, ARM64 execution and individual anti-cheat compatibility remain hardware/game acceptance work.

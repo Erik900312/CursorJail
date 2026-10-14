@@ -291,4 +291,35 @@ public partial class MainWindow
         EditButton.IsEnabled = true; // Rendering only; attachment services remain unavailable.
     }
     internal bool AutomaticPreferenceForSmoke => _attachment.Enabled;
+
+    internal void VerifyAttachedDraggingForSmoke(AttachedWindow target)
+    {
+        if (!_smoke) throw new InvalidOperationException("Drag verification requires smoke mode.");
+        var original = _region;
+        try
+        {
+            var profile = new AttachmentProfile(Guid.NewGuid().ToString("N"), "Drag test", target.Identity, CellLayout.MatchClient, default);
+            if (!_attachment.Attach(profile, target)) throw new InvalidOperationException("Cannot attach drag test window.");
+            _attachment.SetEditing(true); // Keep the real cursor free throughout verification.
+            UpdateAttachedPreview();
+            var bounds = _editorBounds;
+            var smaller = _region.Resize(-40, -30, ResizeEdge.Right | ResizeEdge.Bottom, bounds);
+            var moved = smaller.Move(20, 10, bounds);
+            var larger = moved.Resize(10, 10, ResizeEdge.Right | ResizeEdge.Bottom, bounds);
+            foreach (var next in new[] { smaller, moved, larger })
+            {
+                SetRegion(next, persist: false); // Same callback used by a captured mouse drag.
+                if (!NativeMethods.GetWindowRect(_overlay.Handle, out var actual) || actual.ToScreenRect() != next)
+                    throw new InvalidOperationException("Attached drag changed the region without moving the visible overlay.");
+                if (_attachment.Profile!.Cell(bounds) != next)
+                    throw new InvalidOperationException("Attached drag did not retain the custom area.");
+            }
+        }
+        finally
+        {
+            _attachment.Detach();
+            _region = original;
+            _overlay.SetRegion(original, _desktop);
+        }
+    }
 }

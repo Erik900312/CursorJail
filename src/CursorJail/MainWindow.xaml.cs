@@ -254,7 +254,7 @@ public partial class MainWindow : Window
         if (_attachment.Profile is not null)
         {
             if (!_attachment.SetCustomCell(region)) { ShowStatus("Keep the cursor area inside the attached app window."); return; }
-            _region = region;
+            // Let the preview compare against the previous rectangle before updating the overlay.
             UpdateAttachedPreview();
             UpdateDimensions();
             if (persist) SaveSettings();
