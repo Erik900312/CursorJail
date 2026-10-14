@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace CursorJail.Core;
 
-public enum PassKey { LeftAlt, MiddleMouse }
+public enum PassKey { LeftAlt, MiddleMouse, MouseBack, MouseForward }
 public sealed record SavedRegion(string Name, ScreenRect Region);
 public sealed record Hotkey(uint Modifiers, uint Key)
 {
@@ -16,13 +16,16 @@ public sealed record Hotkey(uint Modifiers, uint Key)
 
 public sealed class AppSettings
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
     public ScreenRect? Region { get; set; }
     public Hotkey ToggleHotkey { get; set; } = Hotkey.Default;
     public PassKey PassKey { get; set; }
     public bool EdgeGlow { get; set; } = true;
     public bool TrimWindow { get; set; } = true;
     public List<SavedRegion> Presets { get; set; } = [];
+    public List<AttachmentProfile> Attachments { get; set; } = [];
+    public string? ActiveAttachmentId { get; set; }
+    public bool AttachmentPaused { get; set; }
 }
 
 public sealed class SettingsStore(string path)
@@ -36,13 +39,18 @@ public sealed class SettingsStore(string path)
         {
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions)
                 ?? throw new JsonException("Empty settings.");
-            if (settings.Version != 1) throw new JsonException("Unsupported settings version.");
+            if (settings.Version is not (1 or 2)) throw new JsonException("Unsupported settings version.");
+            if (settings.Version == 1) { settings.Version = 2; _preserveOriginal = true; }
             if (settings.ToggleHotkey is null || !settings.ToggleHotkey.IsValid || settings.ToggleHotkey == Hotkey.Emergency)
                 settings.ToggleHotkey = Hotkey.Default;
             if (!Enum.IsDefined(settings.PassKey)) settings.PassKey = PassKey.LeftAlt;
             if (settings.Region is { IsValid: false }) settings.Region = null;
             settings.Presets = (settings.Presets ?? []).Where(p => p is not null && p.Region.IsValid && !string.IsNullOrWhiteSpace(p.Name))
                 .Take(20).Select(p => p with { Name = p.Name.Trim()[..Math.Min(64, p.Name.Trim().Length)] }).ToList();
+            var profiles = settings.Attachments ?? [];
+            if (profiles.Any(p => p is null || !p.IsValid)) _preserveOriginal = true;
+            settings.Attachments = profiles.Where(p => p is { IsValid: true }).DistinctBy(p => p.Id).Take(20).ToList();
+            if (!settings.Attachments.Any(p => p.Id == settings.ActiveAttachmentId)) settings.ActiveAttachmentId = null;
             return settings;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)

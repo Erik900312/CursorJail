@@ -16,6 +16,7 @@ public partial class OverlayWindow : Window
     private bool _editing;
     internal event Action<ScreenRect>? RegionChanged;
     internal event Action? EditFinished;
+    internal event Action<bool>? EditorClosed;
 
     public OverlayWindow()
     {
@@ -29,6 +30,8 @@ public partial class OverlayWindow : Window
             ApplyBounds();
         };
         Closed += (_, _) => { if (_source is { IsDisposed: false }) _source.RemoveHook(Hook); };
+        Deactivated += (_, _) => { if (_editing) EditorClosed?.Invoke(true); };
+        Canvas.SizeChanged += (_, _) => UpdateHint();
     }
 
     internal nint Handle => new WindowInteropHelper(this).EnsureHandle();
@@ -43,6 +46,7 @@ public partial class OverlayWindow : Window
     {
         if (!editing && _dragging) FinishDrag();
         _editing = editing;
+        ShowActivated = editing;
         Canvas.Background = editing ? new SolidColorBrush(Color.FromArgb(20, 131, 239, 180)) : Brushes.Transparent;
         Hint.Visibility = Handles.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
         Frame.BorderThickness = new Thickness(editing ? 2 : 1);
@@ -53,6 +57,7 @@ public partial class OverlayWindow : Window
         {
             if (!IsVisible) Show();
             ApplyBounds();
+            if (editing) Activate();
         }
         else Hide();
     }
@@ -68,8 +73,8 @@ public partial class OverlayWindow : Window
     {
         if (_handle == 0) return;
         long style = (long)NativeMethods.GetWindowLongPtr(_handle, NativeMethods.GwlExStyle);
-        style |= NativeMethods.ToolWindow | NativeMethods.NoActivate;
-        style = _editing ? style & ~NativeMethods.Transparent : style | NativeMethods.Transparent;
+        style |= NativeMethods.ToolWindow;
+        style = _editing ? style & ~(NativeMethods.Transparent | NativeMethods.NoActivate) : style | NativeMethods.Transparent | NativeMethods.NoActivate;
         NativeMethods.SetWindowLongPtr(_handle, NativeMethods.GwlExStyle, (nint)style);
     }
     private void ApplyBounds()
@@ -78,9 +83,16 @@ public partial class OverlayWindow : Window
         NativeMethods.SetWindowPos(_handle, NativeMethods.HwndTopmost, _region.Left, _region.Top,
             _region.Width, _region.Height, NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder);
     }
+    private void UpdateHint()
+    {
+        bool compact = Canvas.ActualWidth < 420 || Canvas.ActualHeight < 220;
+        HintSurface.Padding = compact ? new Thickness(8) : new Thickness(24, 16, 24, 16);
+        EditInstructions.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        EditBrand.Visibility = Canvas.ActualHeight < 150 ? Visibility.Collapsed : Visibility.Visible;
+    }
     private nint Hook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
-        if (message == NativeMethods.WmMouseActivate) { handled = true; return 3; } // MA_NOACTIVATE
+        if (message == NativeMethods.WmMouseActivate) { handled = true; return _editing ? 1 : 3; }
         if (message == NativeMethods.WmDpiChanged)
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ApplyBounds));
         return 0;
@@ -121,7 +133,7 @@ public partial class OverlayWindow : Window
             _ => Cursors.SizeAll
         };
     }
-    private void EndDrag(object sender, MouseButtonEventArgs e) => FinishDrag();
+    private void EndDrag(object sender, MouseButtonEventArgs e) { if (_dragging) FinishDrag(); }
     private void CaptureLost(object sender, MouseEventArgs e) { if (_dragging) FinishDrag(); }
     private void FinishDrag()
     {
@@ -129,4 +141,7 @@ public partial class OverlayWindow : Window
         Canvas.ReleaseMouseCapture();
         EditFinished?.Invoke();
     }
+    private void Done(object sender, RoutedEventArgs e) => EditorClosed?.Invoke(true);
+    private void Cancel(object sender, RoutedEventArgs e) => EditorClosed?.Invoke(false);
+    private void EditKeyPressed(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) { e.Handled = true; EditorClosed?.Invoke(false); } }
 }

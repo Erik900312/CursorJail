@@ -58,6 +58,17 @@ public sealed class JailController(ICursorPlatform platform)
         lock (_gate) TickCore();
     }
 
+    public void UpdateRegion(ScreenRect region)
+    {
+        lock (_gate)
+        {
+            if (!IsArmed || Region == region) return;
+            if (!region.IsValid) { Release("Released. Invalid cage geometry."); return; }
+            Region = region;
+            Changed?.Invoke();
+        }
+    }
+
     private void TickCore()
     {
         if (State == JailState.ReleaseFailed)
@@ -126,6 +137,8 @@ public sealed class JailController(ICursorPlatform platform)
 
     private bool Confine()
     {
+        if (platform.ForegroundWindow != Target || platform.IsEscapeChordDown || !platform.IsUsableWindow(Target))
+        { Release("Released. Focus changed or a system shortcut was pressed."); return false; }
         if (!platform.TryConfine(Region))
         {
             Release("Windows could not lock the cursor. Try again in a normal desktop window.");

@@ -9,7 +9,8 @@ Safety invariants:
 - App startup never confines the cursor.
 - Focus loss, system shortcuts, session/display changes and exit release the cage.
 - Focus and escape checks precede watchdog repair.
-- No automatic lock reacquisition after a focus change.
+- Manual cages never reacquire after focus loss. Explicit app attachments may reacquire only for the identified app/window while automatic mode is enabled.
+- Emergency release and explicit pause disable automatic reacquisition until the user resumes. App startup itself never acquires a clip.
 - Registration failures disable locking if escape controls or focus monitoring are unavailable.
 - A failed release cannot reapply a clip.
 - Do not clear clips owned by other apps while CursorJail is idle.

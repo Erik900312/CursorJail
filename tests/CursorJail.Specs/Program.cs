@@ -134,7 +134,7 @@ var tests = new (string Name, Action Run)[]
     })),
     ("future settings versions are preserved", () => WithTemp(path =>
     {
-        File.WriteAllText(path, "{\"Version\":99}"); var store = new SettingsStore(path); Equal(1, store.Load().Version); Check(store.Notice is not null);
+        File.WriteAllText(path, "{\"Version\":99}"); var store = new SettingsStore(path); Equal(2, store.Load().Version); Check(store.Notice is not null);
     })),
     ("invalid stored hotkeys and pass keys fall back safely", () => WithTemp(path =>
     {
@@ -147,13 +147,14 @@ var tests = new (string Name, Action Run)[]
     })
 };
 
+var allTests = tests.Concat(AttachmentSpecs.All).ToArray();
 int failures = 0;
-foreach (var (name, run) in tests)
+foreach (var (name, run) in allTests)
 {
     try { run(); Console.WriteLine($"PASS {name}"); }
     catch (Exception ex) { failures++; Console.Error.WriteLine($"FAIL {name}: {ex.Message}"); }
 }
-Console.WriteLine($"{tests.Length - failures}/{tests.Length} specifications passed.");
+Console.WriteLine($"{allTests.Length - failures}/{allTests.Length} specifications passed.");
 return failures == 0 ? 0 : 1;
 
 static void Equal<T>(T expected, T actual)

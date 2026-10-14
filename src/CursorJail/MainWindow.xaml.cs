@@ -14,10 +14,12 @@ public partial class MainWindow : Window
     private readonly AppSettings _settings;
     private readonly WindowsPlatform _platform = new();
     private readonly JailController _controller;
+    private readonly AttachmentController _attachment;
     private readonly OverlayWindow _overlay = new();
     private readonly DispatcherTimer _timer;
     private readonly Stopwatch _countdown = new();
     private readonly NativeMethods.WinEventProc _foregroundCallback;
+    private readonly NativeMethods.WinEventProc _moveCallback;
     private IReadOnlyList<MonitorItem> _monitors;
     private ScreenRect _desktop;
     private ScreenRect _region;
@@ -25,6 +27,7 @@ public partial class MainWindow : Window
     private uint _snappedProcess;
     private string _regionName = "Manual region";
     private nint _focusHook;
+    private nint _moveHook;
     private GlobalHotkeys? _hotkeys;
     private Hotkey _draftHotkey;
     private Forms.NotifyIcon? _tray;
@@ -44,22 +47,29 @@ public partial class MainWindow : Window
         _platform.PassKey = _settings.PassKey;
         _platform.TrimWindow = _settings.TrimWindow;
         _controller = new JailController(_platform);
+        _attachment = new AttachmentController(_platform, _controller);
         _monitors = WindowsPlatform.Monitors();
         if (_monitors.Count == 0) throw new InvalidOperationException("Windows did not report any connected monitors.");
         _desktop = WindowsPlatform.DesktopBounds(_monitors);
+        _platform.RegionAvailable = RegionOnDesktop;
+        if (_settings.Attachments.FirstOrDefault(p => p.Id == _settings.ActiveAttachmentId) is { } remembered)
+            _attachment.Restore(remembered, _settings.AttachmentPaused);
         var primary = _monitors[0].Bounds;
         _region = NormalizeRegion(_settings.Region ?? ScreenRect.Center(primary, (int)(primary.Width * .7), (int)(primary.Height * .65)));
         _timer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(50) };
         _timer.Tick += OnTick;
         _foregroundCallback = (_, eventType, window, _, _, _, _) =>
         {
-            if (eventType == 3 && !_closing) _controller.ForegroundChanged(window);
+            if (eventType == 3 && !_closing) _attachment.ForegroundChanged(window);
         };
+        _moveCallback = (_, eventType, window, _, _, _, _) => { if (!_closing) _attachment.WindowMove(window, eventType == 10); };
         InitializeComponent();
         _overlay.SetRegion(_region, _desktop);
         _overlay.RegionChanged += region => SetRegion(region, persist: false);
         _overlay.EditFinished += () => SaveSettings();
+        _overlay.EditorClosed += commit => { if (!_closing) EndCellEdit(commit, restoreFocus: _platform.ForegroundWindow == _overlay.Handle); };
         _controller.Changed += ControllerChanged;
+        _attachment.Changed += AttachmentChanged;
         TrimCheck.IsChecked = _settings.TrimWindow;
         GlowCheck.IsChecked = _settings.EdgeGlow;
         PassPicker.SelectedIndex = (int)_settings.PassKey;
@@ -68,9 +78,11 @@ public partial class MainWindow : Window
         MonitorPicker.SelectedIndex = 0;
         RefreshWindowList();
         RefreshSaved();
+        RefreshRememberedApps();
         UpdateDimensions();
         _initializing = false;
         RefreshUi();
+        if (_attachment.Profile is not null) ShowStatus(_attachment.Message);
         if (_store.Notice is not null) ShowStatus(_store.Notice);
         SourceInitialized += InitializeNative;
         Closed += OnClosed;
@@ -87,8 +99,21 @@ public partial class MainWindow : Window
         _hotkeys = new GlobalHotkeys(new WindowInteropHelper(this).Handle);
         _hotkeys.Toggle += ToggleLock;
         _hotkeys.Emergency += () => Release("Emergency release. Your cursor is free.");
+        _hotkeys.Edit += () =>
+        {
+            if (HotkeyInput.IsKeyboardFocusWithin)
+            {
+                _draftHotkey = new Hotkey(3, 0x45);
+                HotkeyInput.Text = GlobalHotkeys.Label(_draftHotkey);
+                ShowStatus("Press Apply to use Ctrl + Alt + E as your toggle. Adjust cell will remain available by button.");
+            }
+            else if (_editing) EndCellEdit(true, true);
+            else BeginCellEdit();
+        };
         _hotkeys.SetToggle(_settings.ToggleHotkey);
         _focusHook = NativeMethods.SetWinEventHook(3, 3, 0, _foregroundCallback, 0, 0, 0);
+        _moveHook = NativeMethods.SetWinEventHook(10, 11, 0, _moveCallback, 0, 0, 0);
+        _attachment.SetReady(_hotkeys.Ready && _focusHook != 0);
         if (_focusHook == 0) ShowStatus("Windows focus monitoring is unavailable. Locking is disabled.");
         else if (_hotkeys.Error is not null) ShowStatus(_hotkeys.Error);
         SystemEvents.DisplaySettingsChanged += DisplayChanged;
@@ -96,10 +121,12 @@ public partial class MainWindow : Window
         SystemEvents.PowerModeChanged += PowerChanged;
         CreateTray();
         RefreshUi();
+        RefreshTimer();
     }
 
     private bool CanLock()
     {
+        if (_closing) return false;
         if (_hotkeys is not { Ready: true }) { ShowStatus(_hotkeys?.Error ?? "Escape shortcuts are unavailable. Locking is disabled."); return false; }
         if (_focusHook == 0) { ShowStatus("Focus monitoring is unavailable. Locking is disabled."); return false; }
         return true;
@@ -107,6 +134,7 @@ public partial class MainWindow : Window
 
     private void ToggleLock()
     {
+        if (_attachment.Profile is not null) { ToggleAutomatic(); return; }
         if (_pending || _controller.State != JailState.Unlocked) { Release(); return; }
         if (!CanLock()) return;
         LockForeground();
@@ -149,6 +177,7 @@ public partial class MainWindow : Window
 
     private void LockFromPanel(object sender, RoutedEventArgs e)
     {
+        if (_attachment.Profile is not null) { ToggleAutomatic(returnToGame: true); return; }
         if (_pending || _controller.State != JailState.Unlocked) { Release(); return; }
         if (!CanLock()) return;
         if (_snappedTarget != 0 && !SnapAvailable()) { ShowStatus("The snapped window is no longer available. Refresh and snap again."); return; }
@@ -181,8 +210,14 @@ public partial class MainWindow : Window
             }
             return;
         }
-        _controller.Tick();
-        if (_controller.State == JailState.Locked && _settings.EdgeGlow) _overlay.UpdateGlow();
+        if (_attachment.Profile is not null)
+        {
+            if (_editing) UpdateAttachedPreview();
+            _attachment.Tick();
+            if (!_attachment.Enabled) _controller.Tick();
+        }
+        else _controller.Tick();
+        if (_attachment.Profile is null && _controller.State == JailState.Locked && _settings.EdgeGlow) _overlay.UpdateGlow();
     }
 
     private void ControllerChanged()
@@ -195,9 +230,8 @@ public partial class MainWindow : Window
             _overlay.SetRegion(_region, _desktop);
             UpdateDimensions();
         }
-        if (_controller.State != JailState.Unlocked) _timer.Start();
-        else if (!_pending) _timer.Stop();
-        _overlay.SetMode(_editing, _editing || (_controller.State == JailState.Locked && _settings.EdgeGlow));
+        RefreshTimer();
+        _overlay.SetMode(_editing, _editing || (_attachment.Profile is null && _controller.State == JailState.Locked && _settings.EdgeGlow));
         ShowStatus(_controller.Message);
         RefreshUi();
     }
@@ -206,13 +240,26 @@ public partial class MainWindow : Window
     {
         _pending = false;
         _countdown.Reset();
-        _controller.Release(message);
-        if (_controller.State == JailState.Unlocked) _timer.Stop();
+        _picker?.Cancel();
+        if (_editing) EndCellEdit(commit: false, restoreFocus: false);
+        if (_attachment.Profile is not null) _attachment.Pause(message + " Automatic locking is paused.");
+        else _controller.Release(message);
+        SaveSettings();
+        RefreshTimer();
         RefreshUi();
     }
 
     private void SetRegion(ScreenRect region, bool clearTarget = true, bool persist = true)
     {
+        if (_attachment.Profile is not null)
+        {
+            if (!_attachment.SetCustomCell(region)) { ShowStatus("Keep the cell inside the attached app's client area."); return; }
+            _region = region;
+            UpdateAttachedPreview();
+            UpdateDimensions();
+            if (persist) SaveSettings();
+            return;
+        }
         if (_controller.State != JailState.Unlocked || _pending) Release();
         _region = NormalizeRegion(region);
         if (clearTarget) { _snappedTarget = 0; _snappedProcess = 0; _regionName = "Manual region"; }
@@ -259,6 +306,7 @@ public partial class MainWindow : Window
         };
         StatusDot.Fill = new SolidColorBrush(_controller.State == JailState.ReleaseFailed ? Color.FromRgb(255, 159, 120) : Color.FromRgb(145, 242, 195));
         EscapeHint.Text = $"{GlobalHotkeys.Label(_settings.ToggleHotkey)}  toggle     ·     Ctrl + Alt + Esc  release";
+        RefreshAttachmentUi();
         if (_tray is not null) _tray.Text = "CursorJail · " + StateLabel.Text.ToLowerInvariant();
     }
 
@@ -268,6 +316,7 @@ public partial class MainWindow : Window
     {
         if (_smoke || _closing) return true;
         _settings.Region = _region;
+        SyncAttachmentSettings();
         if (_store.Save(_settings)) return true;
         ShowStatus(_store.Notice!);
         return false;
@@ -285,12 +334,12 @@ public partial class MainWindow : Window
         if (WindowPicker.SelectedItem is not WindowItem window || !_platform.IsUsableWindow(window.Handle)
             || !WindowsPlatform.TryWindowRegion(window.Handle, _settings.TrimWindow, out var rect) || !RegionOnDesktop(rect))
         { ShowStatus("Choose a visible window at least 160 × 100 pixels, then snap again."); return; }
+        _attachment.Detach();
         _snappedTarget = window.Handle;
         NativeMethods.GetWindowThreadProcessId(window.Handle, out _snappedProcess);
         _regionName = window.Title;
         SetRegion(rect, clearTarget: false);
-        _editing = true;
-        _overlay.SetMode(true, true);
+        BeginCellEdit();
         ShowStatus($"Snapped to {window.Title}. Dragging the cage switches to a manual region.");
         RefreshUi();
     }
@@ -306,20 +355,16 @@ public partial class MainWindow : Window
     {
         if (MonitorPicker.SelectedItem is not MonitorItem monitor) return;
         if (!Enum.TryParse<RegionPreset>((string)((Button)sender).Tag, out var preset)) return;
+        _attachment.Detach();
         SetRegion(ScreenRect.Preset(monitor.Bounds, preset));
-        _editing = true;
-        _overlay.SetMode(true, true);
+        BeginCellEdit();
         ShowStatus("Layout ready. Adjust the cage on screen, then lock it.");
         RefreshUi();
     }
     private void ToggleEdit(object sender, RoutedEventArgs e)
     {
-        if (_controller.State != JailState.Unlocked || _pending) Release();
-        _editing = !_editing;
-        _overlay.SetMode(_editing, _editing);
-        ShowStatus(_editing ? "Drag the cage or resize its edges. Choose Done editing when it fits." : "Cage ready. Focus your game and use the toggle, or lock in 3 seconds.");
-        SaveSettings();
-        RefreshUi();
+        if (_editing) EndCellEdit(true, true);
+        else BeginCellEdit();
     }
     private void ApplyDimensions(object sender, RoutedEventArgs e)
     {
@@ -358,6 +403,7 @@ public partial class MainWindow : Window
         if (_hotkeys is null || !_hotkeys.SetToggle(_draftHotkey))
         { ShowStatus(_hotkeys?.Error ?? "Shortcut registration is unavailable."); return; }
         _settings.ToggleHotkey = _draftHotkey;
+        _attachment.SetReady(_hotkeys.Ready && _focusHook != 0);
         SaveSettings();
         ShowStatus(_hotkeys.Error ?? "Toggle shortcut saved.");
         BuildTrayMenu();
@@ -401,9 +447,9 @@ public partial class MainWindow : Window
     private void ApplySaved(SavedRegion preset)
     {
         Release();
+        _attachment.Detach();
         SetRegion(preset.Region);
-        _editing = true;
-        _overlay.SetMode(true, true);
+        BeginCellEdit();
         ShowStatus($"Loaded “{preset.Name}”. Check the cage before locking.");
         RefreshUi();
     }
@@ -431,7 +477,9 @@ public partial class MainWindow : Window
         var old = _tray.ContextMenuStrip;
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Open CursorJail", null, (_, _) => Dispatcher.Invoke(ShowPanel));
-        menu.Items.Add("Lock cage in 3s", null, (_, _) => Dispatcher.Invoke(() => LockFromPanel(this, new RoutedEventArgs())));
+        menu.Items.Add(_attachment.Profile is null ? "Lock cage in 3s" : _attachment.Enabled ? "Pause automatic locking" : "Resume automatic locking", null,
+            (_, _) => Dispatcher.Invoke(() => LockFromPanel(this, new RoutedEventArgs())));
+        menu.Items.Add(_hotkeys?.EditReady == true ? "Adjust cell · Ctrl + Alt + E" : "Adjust cell", null, (_, _) => Dispatcher.Invoke(() => BeginCellEdit()));
         menu.Items.Add("Release cursor", null, (_, _) => Dispatcher.Invoke(() => Release()));
         menu.Items.Add(new Forms.ToolStripSeparator());
         var saved = new Forms.ToolStripMenuItem("Saved cages") { Enabled = _settings.Presets.Count > 0 };
@@ -445,10 +493,13 @@ public partial class MainWindow : Window
     }
     private void ShowPanel()
     {
-        Release();
+        if (_editing) EndCellEdit(true, false);
+        _attachment.SetEditing(true);
+        _controller.Release();
         Show();
         WindowState = WindowState.Normal;
         Activate();
+        _attachment.SetEditing(false);
         RefreshWindowList();
     }
     private void HideToTray(object sender, RoutedEventArgs e) => Hide();
@@ -476,7 +527,13 @@ public partial class MainWindow : Window
         _desktop = WindowsPlatform.DesktopBounds(monitors);
         MonitorPicker.ItemsSource = monitors;
         MonitorPicker.SelectedIndex = 0;
-        SetRegion(_region);
+        if (_attachment.Profile is not null)
+        {
+            UpdateAttachedPreview(); // Recompute geometry without changing the saved layout/margins.
+            SaveSettings();
+            RefreshUi();
+        }
+        else SetRegion(_region);
     }));
     private void SessionChanged(object sender, SessionSwitchEventArgs e) => Dispatcher.BeginInvoke(new Action(() =>
     {
@@ -504,8 +561,16 @@ public partial class MainWindow : Window
     {
         if (!_closing)
         {
-            Release("Released. CursorJail is closing.");
-            if (_controller.State == JailState.ReleaseFailed) e.Cancel = true;
+            if (_editing) EndCellEdit(true, false);
+            _pending = false;
+            _attachment.SetEditing(true); // Suspend during close without changing the saved automatic preference.
+            _controller.Release("Released. CursorJail is closing.");
+            if (_controller.State == JailState.ReleaseFailed)
+            {
+                e.Cancel = true;
+                _attachment.Pause("Close cancelled. Windows could not confirm cursor release; automatic locking is paused.");
+                _attachment.SetEditing(false);
+            }
         }
         base.OnClosing(e);
     }
@@ -516,6 +581,8 @@ public partial class MainWindow : Window
         ReleaseForExit();
         _timer.Stop();
         if (_focusHook != 0) NativeMethods.UnhookWinEvent(_focusHook);
+        if (_moveHook != 0) NativeMethods.UnhookWinEvent(_moveHook);
+        _picker?.Cancel();
         _hotkeys?.Dispose();
         if (!_smoke)
         {

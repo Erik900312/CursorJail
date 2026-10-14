@@ -53,6 +53,13 @@ public readonly record struct ScreenRect(int Left, int Top, int Right, int Botto
         int y = monitor.Top + (monitor.Height - height) / 2;
         return new(x, y, x + width, y + height);
     }
+
+    public static ScreenRect CenterAspect(ScreenRect bounds, double aspect)
+    {
+        int width = Math.Min(bounds.Width, (int)Math.Round(bounds.Height * aspect));
+        int height = Math.Min(bounds.Height, (int)Math.Round(bounds.Width / aspect));
+        return Center(bounds, width, height);
+    }
 }
 
 [Flags]
