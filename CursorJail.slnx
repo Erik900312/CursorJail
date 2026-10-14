@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CursorJail.Core/CursorJail.Core.csproj" />
+    <Project Path="src/CursorJail/CursorJail.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CursorJail.Specs/CursorJail.Specs.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+artifacts/
+dist/
+TestResults/
+*.user
+*.suo
+*.log
+.env
+.env.*
+!.env.example
+*.pfx
+*.snk
+.agent-tasks/runs/
+.agent-worktrees/
