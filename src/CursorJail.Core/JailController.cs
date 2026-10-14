@@ -63,7 +63,7 @@ public sealed class JailController(ICursorPlatform platform)
         lock (_gate)
         {
             if (!IsArmed || Region == region) return;
-            if (!region.IsValid) { Release("Released. Invalid cage geometry."); return; }
+            if (!region.IsValid) { Release("Released. Invalid cursor area."); return; }
             Region = region;
             Changed?.Invoke();
         }
@@ -146,7 +146,7 @@ public sealed class JailController(ICursorPlatform platform)
         }
         _ownsClip = true;
         State = JailState.Locked;
-        Message = "Locked. Your cursor stays inside the cage.";
+        Message = "Locked. Your cursor stays inside the selected area.";
         Changed?.Invoke();
         return true;
     }

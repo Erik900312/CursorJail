@@ -81,7 +81,7 @@ public sealed class SettingsStore(string path)
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Notice = "Settings could not be saved. Your current cage still works for this session.";
+            Notice = "Settings could not be saved. Your current cursor area still works for this session.";
             return false;
         }
     }

@@ -24,7 +24,7 @@
       <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="22,6,22,8">
         <StackPanel>
           <TextBlock Text="Keep your cursor in the game." FontSize="25" FontWeight="SemiBold" Margin="0,0,0,5" />
-          <TextBlock Text="Attach your game. The cage follows its focus." Foreground="{StaticResource Muted}" Margin="0,0,0,20" />
+          <TextBlock Text="Lock only while your selected app is active." Foreground="{StaticResource Muted}" Margin="0,0,0,20" />
           <Border Style="{StaticResource Card}" Background="#14261F" BorderBrush="#2F5140">
             <StackPanel>
               <StackPanel Orientation="Horizontal">
@@ -38,9 +38,9 @@
           <StackPanel x:Name="SetupControls">
             <Border Style="{StaticResource Card}">
               <StackPanel>
-                <TextBlock Text="01   ATTACH YOUR GAME" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,14" />
+                <TextBlock Text="01   CHOOSE AN APP" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,14" />
                 <Grid>
-                  <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                  <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                   <ComboBox x:Name="WindowPicker" AutomationProperties.Name="Game or app window" ToolTip="Choose an open game or app window">
                     <ComboBox.ItemTemplate><DataTemplate><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition /></Grid.ColumnDefinitions>
                       <Image Source="{Binding Icon}" Width="18" Height="18" VerticalAlignment="Center" />
@@ -48,26 +48,26 @@
                     </Grid></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                   <Button Grid.Column="1" Content="↻" Margin="8,0,8,0" Click="RefreshWindows" ToolTip="Refresh open windows" AutomationProperties.Name="Refresh open windows" />
-                  <Button Grid.Column="2" Content="Snap once" Click="SnapWindow" Padding="8,8" Margin="0,0,8,0" ToolTip="Create a manual cage that follows this window until released" />
-                  <Button Grid.Column="3" Content="Attach" Click="AttachWindow" Style="{StaticResource Primary}" MinHeight="36" Padding="12,8" />
+                  <Button Grid.Column="2" Content="Attach to app" Click="AttachWindow" Style="{StaticResource Primary}" MinHeight="36" Padding="12,8" />
                 </Grid>
                 <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                   <Button Content="⌖  Pick a window on screen" Click="PickWindow" HorizontalAlignment="Left" />
-                  <Button x:Name="DetachButton" Grid.Column="1" Content="Detach" Click="DetachWindow" />
+                  <Button x:Name="DetachButton" Grid.Column="1" Content="Detach from app" Click="DetachWindow" />
                 </Grid>
                 <TextBlock x:Name="AttachmentDetails" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0" />
                 <StackPanel x:Name="CellControls" Margin="0,14,0,0" Visibility="Collapsed">
                   <UniformGrid Columns="3">
-                    <Button Content="Match canvas" Tag="MatchClient" Click="ChooseCell" Margin="0,0,7,0" Padding="5,8" />
-                    <Button Content="Center 16:9" Tag="Center16By9" Click="ChooseCell" Margin="0,0,7,0" Padding="5,8" />
-                    <Button Content="Center 21:9" Tag="Center21By9" Click="ChooseCell" Padding="5,8" />
+                    <Button Content="Full app area" Tag="MatchClient" Click="ChooseCell" Margin="0,0,7,0" Padding="5,8" ToolTip="Use the app's inner area, excluding its title bar and window borders" />
+                    <Button Content="Center 16:9" Tag="Center16By9" Click="ChooseCell" Margin="0,0,7,0" Padding="5,8" ToolTip="Center a 16:9 cursor area inside the app window" />
+                    <Button Content="Center 21:9" Tag="Center21By9" Click="ChooseCell" Padding="5,8" ToolTip="Center a 21:9 cursor area inside the app window" />
                   </UniformGrid>
                   <TextBlock x:Name="CellDescription" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
                 </StackPanel>
-                <Expander Header="Manual monitor cage" Margin="0,14,0,0">
+                <Expander Header="Manual area setup" Margin="0,14,0,0">
                   <StackPanel Margin="0,8,0,0">
-                <CheckBox x:Name="TrimCheck" Content="Trim title bar &amp; borders for Snap once" IsChecked="True" Click="TrimChanged" />
-                <TextBlock Text="Attachments always use the exact game canvas." FontSize="11" Foreground="{StaticResource Muted}" Margin="24,4,0,12" />
+                <Button Content="Use selected window" Click="SnapWindow" HorizontalAlignment="Left" Margin="0,0,0,6" ToolTip="Set a manual cursor area from the app selected above. Lock it with your shortcut." />
+                <CheckBox x:Name="TrimCheck" Content="Exclude title bar and window borders" IsChecked="True" Click="TrimChanged" />
+                <TextBlock Text="Attached apps always exclude their title bar and borders." FontSize="11" Foreground="{StaticResource Muted}" Margin="24,4,0,12" />
                 <TextBlock Text="Monitor layout" Style="{StaticResource Label}" />
                 <ComboBox x:Name="MonitorPicker" Margin="0,0,0,10" AutomationProperties.Name="Monitor for layouts" />
                 <UniformGrid Columns="4">
@@ -81,17 +81,17 @@
                 <Expander x:Name="RememberedApps" Header="Remembered apps" Margin="0,12,0,0">
                   <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <ComboBox x:Name="RememberedPicker" DisplayMemberPath="Name" AutomationProperties.Name="Remembered app attachment" />
-                    <Button Grid.Column="1" Content="Use" Click="LoadRemembered" Margin="8,0,8,0" />
-                    <Button Grid.Column="2" Content="Forget" Click="ForgetRemembered" />
+                    <Button Grid.Column="1" Content="Use app" Click="LoadRemembered" Margin="8,0,8,0" />
+                    <Button Grid.Column="2" Content="Forget app" Click="ForgetRemembered" />
                   </Grid>
                 </Expander>
                 <Expander Header="Exact position &amp; size" Margin="0,14,0,0">
                   <StackPanel Margin="0,10,0,0">
                     <UniformGrid Columns="4">
-                      <StackPanel Margin="0,0,8,0"><TextBlock Text="X (px)" Style="{StaticResource Label}" /><TextBox x:Name="XInput" AutomationProperties.Name="Cage X coordinate in pixels" /></StackPanel>
-                      <StackPanel Margin="0,0,8,0"><TextBlock Text="Y (px)" Style="{StaticResource Label}" /><TextBox x:Name="YInput" AutomationProperties.Name="Cage Y coordinate in pixels" /></StackPanel>
-                      <StackPanel Margin="0,0,8,0"><TextBlock Text="Width (px)" Style="{StaticResource Label}" /><TextBox x:Name="WidthInput" AutomationProperties.Name="Cage width in pixels" /></StackPanel>
-                      <StackPanel><TextBlock Text="Height (px)" Style="{StaticResource Label}" /><TextBox x:Name="HeightInput" AutomationProperties.Name="Cage height in pixels" /></StackPanel>
+                      <StackPanel Margin="0,0,8,0"><TextBlock Text="X (px)" Style="{StaticResource Label}" /><TextBox x:Name="XInput" AutomationProperties.Name="Cursor area X coordinate in pixels" /></StackPanel>
+                      <StackPanel Margin="0,0,8,0"><TextBlock Text="Y (px)" Style="{StaticResource Label}" /><TextBox x:Name="YInput" AutomationProperties.Name="Cursor area Y coordinate in pixels" /></StackPanel>
+                      <StackPanel Margin="0,0,8,0"><TextBlock Text="Width (px)" Style="{StaticResource Label}" /><TextBox x:Name="WidthInput" AutomationProperties.Name="Cursor area width in pixels" /></StackPanel>
+                      <StackPanel><TextBlock Text="Height (px)" Style="{StaticResource Label}" /><TextBox x:Name="HeightInput" AutomationProperties.Name="Cursor area height in pixels" /></StackPanel>
                     </UniformGrid>
                     <Button Content="Apply dimensions" HorizontalAlignment="Right" Margin="0,10,0,0" Click="ApplyDimensions" />
                   </StackPanel>
@@ -100,29 +100,29 @@
             </Border>
             <Border Style="{StaticResource Card}">
               <StackPanel>
-                <TextBlock Text="02   MAKE YOUR ESCAPE EASY" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,14" />
+                <TextBlock Text="02   SHORTCUTS &amp; DISPLAY" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,14" />
                 <Grid>
                   <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
-                  <StackPanel><TextBlock Text="Toggle shortcut" Style="{StaticResource Label}" /><TextBox x:Name="HotkeyInput" IsReadOnly="True" PreviewKeyDown="CaptureHotkey" ToolTip="Click here and press your shortcut, then Apply" AutomationProperties.Name="Toggle shortcut; press a key combination" /></StackPanel>
+                  <StackPanel><TextBlock Text="Lock / unlock shortcut" Style="{StaticResource Label}" /><TextBox x:Name="HotkeyInput" IsReadOnly="True" PreviewKeyDown="CaptureHotkey" ToolTip="Click here and press your shortcut, then Apply" AutomationProperties.Name="Lock and unlock shortcut; press a key combination" /></StackPanel>
                   <Button Grid.Column="1" Content="Apply" Margin="8,20,18,0" VerticalAlignment="Bottom" Click="ApplyHotkey" />
-                  <StackPanel Grid.Column="2"><TextBlock Text="Parole key" Style="{StaticResource Label}" /><ComboBox x:Name="PassPicker" SelectionChanged="PassChanged" AutomationProperties.Name="Temporary pass through key"><ComboBoxItem Content="Left Alt" /><ComboBoxItem Content="Middle mouse" /><ComboBoxItem Content="Mouse back" /><ComboBoxItem Content="Mouse forward" /></ComboBox></StackPanel>
+                  <StackPanel Grid.Column="2"><TextBlock Text="Hold to unlock" Style="{StaticResource Label}" /><ComboBox x:Name="PassPicker" SelectionChanged="PassChanged" AutomationProperties.Name="Hold to temporarily unlock the cursor" ToolTip="Hold this key or button to temporarily release the cursor"><ComboBoxItem Content="Left Alt" /><ComboBoxItem Content="Middle mouse" /><ComboBoxItem Content="Mouse back" /><ComboBoxItem Content="Mouse forward" /></ComboBox></StackPanel>
                 </Grid>
-                <CheckBox x:Name="GlowCheck" Content="Faint edge border for manual cages" IsChecked="True" Click="GlowChanged" />
-                <TextBlock x:Name="EditHint" Text="Attached cells stay invisible while playing. Ctrl + Alt + E adjusts the cell." TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,9,0,0" />
+                <CheckBox x:Name="GlowCheck" Content="Show area border in manual mode" IsChecked="True" Click="GlowChanged" />
+                <TextBlock x:Name="EditHint" Text="The border is hidden when an app is attached. Ctrl + Alt + E adjusts the cursor area." TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,9,0,0" />
                 <TextBlock x:Name="ModeHint" TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,7,0,0" />
               </StackPanel>
             </Border>
             <Border Style="{StaticResource Card}">
-              <Expander Header="Saved cages">
+              <Expander Header="Saved cursor areas">
                 <StackPanel Margin="0,12,0,0">
                   <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <ComboBox x:Name="SavedPicker" DisplayMemberPath="Name" AutomationProperties.Name="Saved cage" />
+                    <ComboBox x:Name="SavedPicker" DisplayMemberPath="Name" AutomationProperties.Name="Saved cursor area" />
                     <Button Grid.Column="1" Content="Load" Margin="8,0,8,0" Click="LoadPreset" />
                     <Button Grid.Column="2" Content="Delete" Click="DeletePreset" />
                   </Grid>
                   <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBox x:Name="PresetName" MaxLength="64" ToolTip="Name for the current cage" AutomationProperties.Name="Name for saved cage" />
-                    <Button Grid.Column="1" Content="Save current" Margin="8,0,0,0" Click="SavePreset" />
+                    <TextBox x:Name="PresetName" MaxLength="64" ToolTip="Name for the current cursor area" AutomationProperties.Name="Name for saved cursor area" />
+                    <Button Grid.Column="1" Content="Save current area" Margin="8,0,0,0" Click="SavePreset" />
                   </Grid>
                 </StackPanel>
               </Expander>
@@ -133,10 +133,10 @@
       <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="22,14,22,12" Background="#10141D">
         <StackPanel>
           <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-            <Button x:Name="EditButton" Content="Edit cage on screen" Click="ToggleEdit" Margin="0,0,10,0" MinHeight="44" />
-            <Button x:Name="LockButton" Grid.Column="1" Content="Lock cage in 3s" Style="{StaticResource Primary}" Click="LockFromPanel" />
+            <Button x:Name="EditButton" Content="Adjust cursor area" Click="ToggleEdit" Margin="0,0,10,0" MinHeight="44" />
+            <Button x:Name="LockButton" Grid.Column="1" Content="Lock cursor in 3s" Style="{StaticResource Primary}" Click="LockFromPanel" />
           </Grid>
-          <TextBlock x:Name="EscapeHint" Text="Ctrl + Alt + L  toggle     ·     Ctrl + Alt + Esc  release" Foreground="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,12,0,0" />
+          <TextBlock x:Name="EscapeHint" Text="Ctrl + Alt + L  lock / unlock     ·     Ctrl + Alt + Esc  release" Foreground="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,12,0,0" />
         </StackPanel>
       </Border>
     </Grid>

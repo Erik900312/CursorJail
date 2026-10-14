@@ -105,7 +105,7 @@ public partial class MainWindow : Window
             {
                 _draftHotkey = new Hotkey(3, 0x45);
                 HotkeyInput.Text = GlobalHotkeys.Label(_draftHotkey);
-                ShowStatus("Press Apply to use Ctrl + Alt + E as your toggle. Adjust cell will remain available by button.");
+                ShowStatus("Press Apply to use Ctrl + Alt + E to lock and unlock. Adjust cursor area will remain available by button.");
             }
             else if (_editing) EndCellEdit(true, true);
             else BeginCellEdit();
@@ -127,7 +127,7 @@ public partial class MainWindow : Window
     private bool CanLock()
     {
         if (_closing) return false;
-        if (_hotkeys is not { Ready: true }) { ShowStatus(_hotkeys?.Error ?? "Escape shortcuts are unavailable. Locking is disabled."); return false; }
+        if (_hotkeys is not { Ready: true }) { ShowStatus(_hotkeys?.Error ?? "Release shortcuts are unavailable. Locking is disabled."); return false; }
         if (_focusHook == 0) { ShowStatus("Focus monitoring is unavailable. Locking is disabled."); return false; }
         return true;
     }
@@ -153,7 +153,7 @@ public partial class MainWindow : Window
         nint target = _platform.ForegroundWindow;
         if (_snappedTarget != 0 && (!SnapAvailable() || target != _snappedTarget))
         {
-            ShowStatus("Focus the snapped window, then toggle. Or choose a monitor layout for a manual cage.");
+            ShowStatus("Focus the selected window, then use your lock shortcut. Or choose a monitor layout for a manual cursor area.");
             _timer.Stop();
             RefreshUi();
             return;
@@ -162,7 +162,7 @@ public partial class MainWindow : Window
         {
             if (!_platform.TryGetTargetRegion(target, out var region) || !RegionOnDesktop(region))
             {
-                ShowStatus("The snapped window is outside the desktop or too small. Snap it again.");
+                ShowStatus("The selected window is outside the desktop or too small. Use selected window to set the area again.");
                 _timer.Stop();
                 RefreshUi();
                 return;
@@ -180,13 +180,13 @@ public partial class MainWindow : Window
         if (_attachment.Profile is not null) { ToggleAutomatic(returnToGame: true); return; }
         if (_pending || _controller.State != JailState.Unlocked) { Release(); return; }
         if (!CanLock()) return;
-        if (_snappedTarget != 0 && !SnapAvailable()) { ShowStatus("The snapped window is no longer available. Refresh and snap again."); return; }
+        if (_snappedTarget != 0 && !SnapAvailable()) { ShowStatus("The selected window is no longer available. Refresh the list and choose another window."); return; }
         _editing = false;
         _overlay.SetMode(false, false);
         _pending = true;
         _countdown.Restart();
         _timer.Start();
-        ShowStatus("Locking in 3 seconds. Focus your game; the toggle or emergency shortcut cancels.");
+        ShowStatus("Locking in 3 seconds. Focus your app; either lock or release shortcut cancels.");
         RefreshUi();
         WindowState = WindowState.Minimized;
         if (_snappedTarget != 0) NativeMethods.SetForegroundWindow(_snappedTarget);
@@ -205,7 +205,7 @@ public partial class MainWindow : Window
                 LockForeground();
                 if (!_controller.IsArmed)
                 {
-                    _tray?.ShowBalloonTip(3500, "CursorJail · cage remains unlocked", StatusMessage.Text, Forms.ToolTipIcon.Info);
+                    _tray?.ShowBalloonTip(3500, "CursorJail · cursor remains unlocked", StatusMessage.Text, Forms.ToolTipIcon.Info);
                 }
             }
             return;
@@ -225,7 +225,7 @@ public partial class MainWindow : Window
         if (_closing) return;
         if (_controller.IsArmed)
         {
-            if (!RegionOnDesktop(_controller.Region)) { Release("Released. The cage moved outside the desktop."); return; }
+            if (!RegionOnDesktop(_controller.Region)) { Release("Released. The cursor area moved outside the desktop."); return; }
             _region = _controller.Region;
             _overlay.SetRegion(_region, _desktop);
             UpdateDimensions();
@@ -253,7 +253,7 @@ public partial class MainWindow : Window
     {
         if (_attachment.Profile is not null)
         {
-            if (!_attachment.SetCustomCell(region)) { ShowStatus("Keep the cell inside the attached app's client area."); return; }
+            if (!_attachment.SetCustomCell(region)) { ShowStatus("Keep the cursor area inside the attached app window."); return; }
             _region = region;
             UpdateAttachedPreview();
             UpdateDimensions();
@@ -296,16 +296,16 @@ public partial class MainWindow : Window
         bool busy = _pending || _controller.State != JailState.Unlocked;
         SetupControls.IsEnabled = !busy;
         EditButton.IsEnabled = !busy;
-        EditButton.Content = _editing ? "Done editing" : "Edit cage on screen";
+        EditButton.Content = _editing ? "Done editing" : "Adjust cursor area";
         LockButton.IsEnabled = busy || (_hotkeys is { Ready: true } && _focusHook != 0);
-        LockButton.Content = _pending ? "Cancel lock" : _controller.State != JailState.Unlocked ? "Release cursor" : "Lock cage in 3s";
+        LockButton.Content = _pending ? "Cancel lock" : _controller.State != JailState.Unlocked ? "Release cursor" : "Lock cursor in 3s";
         StateLabel.Text = _pending ? "ARMING" : _controller.State switch
         {
-            JailState.Locked => "LOCKED", JailState.Passing => "PASSING THROUGH",
+            JailState.Locked => "LOCKED", JailState.Passing => "TEMPORARILY UNLOCKED",
             JailState.ReleaseFailed => "RETRYING RELEASE", _ => _editing ? "EDITING" : "READY"
         };
         StatusDot.Fill = new SolidColorBrush(_controller.State == JailState.ReleaseFailed ? Color.FromRgb(255, 159, 120) : Color.FromRgb(145, 242, 195));
-        EscapeHint.Text = $"{GlobalHotkeys.Label(_settings.ToggleHotkey)}  toggle     ·     Ctrl + Alt + Esc  release";
+        EscapeHint.Text = $"{GlobalHotkeys.Label(_settings.ToggleHotkey)}  lock / unlock     ·     Ctrl + Alt + Esc  release";
         RefreshAttachmentUi();
         if (_tray is not null) _tray.Text = "CursorJail · " + StateLabel.Text.ToLowerInvariant();
     }
@@ -333,14 +333,14 @@ public partial class MainWindow : Window
     {
         if (WindowPicker.SelectedItem is not WindowItem window || !_platform.IsUsableWindow(window.Handle)
             || !WindowsPlatform.TryWindowRegion(window.Handle, _settings.TrimWindow, out var rect) || !RegionOnDesktop(rect))
-        { ShowStatus("Choose a visible window at least 160 × 100 pixels, then snap again."); return; }
+        { ShowStatus("Choose a visible window at least 160 × 100 pixels, then click Use selected window."); return; }
         _attachment.Detach();
         _snappedTarget = window.Handle;
         NativeMethods.GetWindowThreadProcessId(window.Handle, out _snappedProcess);
         _regionName = window.Title;
         SetRegion(rect, clearTarget: false);
         BeginCellEdit();
-        ShowStatus($"Snapped to {window.Title}. Dragging the cage switches to a manual region.");
+        ShowStatus($"Area set from {window.Title}. Dragging the area stops it following the window.");
         RefreshUi();
     }
     private void TrimChanged(object sender, RoutedEventArgs e)
@@ -358,7 +358,7 @@ public partial class MainWindow : Window
         _attachment.Detach();
         SetRegion(ScreenRect.Preset(monitor.Bounds, preset));
         BeginCellEdit();
-        ShowStatus("Layout ready. Adjust the cage on screen, then lock it.");
+        ShowStatus("Layout ready. Adjust the cursor area, then lock it.");
         RefreshUi();
     }
     private void ToggleEdit(object sender, RoutedEventArgs e)
@@ -372,9 +372,9 @@ public partial class MainWindow : Window
             || !int.TryParse(WidthInput.Text, out int width) || !int.TryParse(HeightInput.Text, out int height)
             || width < 160 || height < 100 || width > _desktop.Width || height > _desktop.Height
             || x < _desktop.Left || y < _desktop.Top || (long)x + width > _desktop.Right || (long)y + height > _desktop.Bottom)
-        { ShowStatus("Enter whole pixel values inside the desktop. Minimum cage: 160 × 100 pixels."); return; }
+        { ShowStatus("Enter whole pixel values inside the desktop. Minimum area: 160 × 100 pixels."); return; }
         var region = new ScreenRect(x, y, x + width, y + height);
-        if (!RegionOnDesktop(region)) { ShowStatus("Place the cage on a connected monitor."); return; }
+        if (!RegionOnDesktop(region)) { ShowStatus("Place the cursor area on a connected monitor."); return; }
         SetRegion(region);
         ShowStatus("Exact dimensions applied.");
     }
@@ -405,7 +405,7 @@ public partial class MainWindow : Window
         _settings.ToggleHotkey = _draftHotkey;
         _attachment.SetReady(_hotkeys.Ready && _focusHook != 0);
         SaveSettings();
-        ShowStatus(_hotkeys.Error ?? "Toggle shortcut saved.");
+        ShowStatus(_hotkeys.Error ?? "Lock / unlock shortcut saved.");
         BuildTrayMenu();
         RefreshUi();
     }
@@ -430,19 +430,19 @@ public partial class MainWindow : Window
     private void SavePreset(object sender, RoutedEventArgs e)
     {
         string name = PresetName.Text.Trim();
-        if (string.IsNullOrWhiteSpace(name)) { ShowStatus("Give this cage a name before saving."); return; }
+        if (string.IsNullOrWhiteSpace(name)) { ShowStatus("Give this cursor area a name before saving."); return; }
         int existing = _settings.Presets.FindIndex(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
         var preset = new SavedRegion(name, _region);
         if (existing >= 0) _settings.Presets[existing] = preset;
         else if (_settings.Presets.Count < 20) _settings.Presets.Add(preset);
-        else { ShowStatus("You can save 20 cages. Delete one or reuse its name."); return; }
+        else { ShowStatus("You can save 20 cursor areas. Delete one or reuse its name."); return; }
         RefreshSaved();
-        if (SaveSettings()) ShowStatus($"Saved “{name}”. Loading it restores a manual region.");
+        if (SaveSettings()) ShowStatus($"Saved “{name}”. Loading it restores a manual cursor area.");
     }
     private void LoadPreset(object sender, RoutedEventArgs e)
     {
         if (SavedPicker.SelectedItem is SavedRegion preset) ApplySaved(preset);
-        else ShowStatus("Choose a saved cage first.");
+        else ShowStatus("Choose a saved cursor area first.");
     }
     private void ApplySaved(SavedRegion preset)
     {
@@ -450,12 +450,12 @@ public partial class MainWindow : Window
         _attachment.Detach();
         SetRegion(preset.Region);
         BeginCellEdit();
-        ShowStatus($"Loaded “{preset.Name}”. Check the cage before locking.");
+        ShowStatus($"Loaded “{preset.Name}”. Check the cursor area before locking.");
         RefreshUi();
     }
     private void DeletePreset(object sender, RoutedEventArgs e)
     {
-        if (SavedPicker.SelectedItem is not SavedRegion preset) { ShowStatus("Choose a saved cage first."); return; }
+        if (SavedPicker.SelectedItem is not SavedRegion preset) { ShowStatus("Choose a saved cursor area first."); return; }
         _settings.Presets.Remove(preset);
         RefreshSaved();
         SaveSettings();
@@ -477,12 +477,12 @@ public partial class MainWindow : Window
         var old = _tray.ContextMenuStrip;
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Open CursorJail", null, (_, _) => Dispatcher.Invoke(ShowPanel));
-        menu.Items.Add(_attachment.Profile is null ? "Lock cage in 3s" : _attachment.Enabled ? "Pause automatic locking" : "Resume automatic locking", null,
+        menu.Items.Add(_attachment.Profile is null ? "Lock cursor in 3s" : _attachment.Enabled ? "Pause automatic locking" : "Resume automatic locking", null,
             (_, _) => Dispatcher.Invoke(() => LockFromPanel(this, new RoutedEventArgs())));
-        menu.Items.Add(_hotkeys?.EditReady == true ? "Adjust cell · Ctrl + Alt + E" : "Adjust cell", null, (_, _) => Dispatcher.Invoke(() => BeginCellEdit()));
+        menu.Items.Add(_hotkeys?.EditReady == true ? "Adjust cursor area · Ctrl + Alt + E" : "Adjust cursor area", null, (_, _) => Dispatcher.Invoke(() => BeginCellEdit()));
         menu.Items.Add("Release cursor", null, (_, _) => Dispatcher.Invoke(() => Release()));
         menu.Items.Add(new Forms.ToolStripSeparator());
-        var saved = new Forms.ToolStripMenuItem("Saved cages") { Enabled = _settings.Presets.Count > 0 };
+        var saved = new Forms.ToolStripMenuItem("Saved cursor areas") { Enabled = _settings.Presets.Count > 0 };
         foreach (var preset in _settings.Presets)
             saved.DropDownItems.Add(preset.Name, null, (_, _) => Dispatcher.Invoke(() => { ShowPanel(); ApplySaved(preset); }));
         menu.Items.Add(saved);

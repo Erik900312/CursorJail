@@ -52,25 +52,25 @@ public partial class MainWindow
         CellControls.Visibility = profile is null ? Visibility.Collapsed : Visibility.Visible;
         DetachButton.IsEnabled = profile is not null;
         GlowCheck.IsEnabled = profile is null;
-        EditHint.Text = _hotkeys?.EditReady == true || _smoke ? "Attached cells stay invisible while playing. Ctrl + Alt + E adjusts the cell."
-            : "Attached cells stay invisible while playing. Use Adjust cell to edit.";
+        EditHint.Text = _hotkeys?.EditReady == true || _smoke ? "The border is hidden when an app is attached. Ctrl + Alt + E adjusts the cursor area."
+            : "The border is hidden when an app is attached. Use Adjust cursor area to edit.";
         TrimCheck.IsEnabled = profile is null;
-        ModeHint.Text = profile is null ? "Manual cages release on focus loss. Toggle again to lock."
+        ModeHint.Text = profile is null ? "Manual locking stops when you switch apps. Use your shortcut to lock again."
             : "Focus the attached app to lock. Switch away to release. Emergency release pauses automatic locking.";
         if (profile is null) return;
         CellDescription.Text = profile.Layout switch
         {
-            CellLayout.Center16By9 => "Centered 16:9 cell · follows the game canvas",
-            CellLayout.Center21By9 => "Centered 21:9 cell · follows the game canvas",
-            CellLayout.Custom => "Custom cell · margins scale with the game canvas",
-            _ => "Match game canvas · title bar and native borders excluded"
+            CellLayout.Center16By9 => "Centered 16:9 area · follows the app window",
+            CellLayout.Center21By9 => "Centered 21:9 area · follows the app window",
+            CellLayout.Custom => "Custom cursor area · margins scale with the app window",
+            _ => "Full app area · title bar and window borders excluded"
         };
-        StateLabel.Text = _controller.State == JailState.ReleaseFailed ? "RETRYING RELEASE" : _editing ? "EDITING CELL"
+        StateLabel.Text = _controller.State == JailState.ReleaseFailed ? "RETRYING RELEASE" : _editing ? "ADJUSTING AREA"
             : !_attachment.Enabled ? "AUTO PAUSED" : _controller.State == JailState.Locked ? "AUTO LOCKED"
-            : _controller.State == JailState.Passing ? "ON PAROLE" : "ATTACHED · WAITING";
+            : _controller.State == JailState.Passing ? "TEMPORARILY UNLOCKED" : "ATTACHED · WAITING";
         LockButton.Content = _controller.State == JailState.ReleaseFailed ? "Retry release" : _attachment.Enabled ? "Pause automatic locking" : "Resume automatic locking";
         LockButton.IsEnabled = _controller.State == JailState.ReleaseFailed || _attachment.Enabled || (_hotkeys is { Ready: true } && _focusHook != 0);
-        EditButton.Content = _editing ? "Done editing" : "Adjust cell";
+        EditButton.Content = _editing ? "Done editing" : "Adjust cursor area";
         EditButton.IsEnabled = _controller.State != JailState.ReleaseFailed && _attachment.Window is not null;
         if (_tray is not null) _tray.Text = "CursorJail · " + (_attachment.Enabled ? "automatic" : "paused");
     }
@@ -137,7 +137,7 @@ public partial class MainWindow
         SaveSettings();
         BuildTrayMenu();
         RefreshUi();
-        ShowStatus("Detached. The current rectangle is now a manual cage.");
+        ShowStatus("Detached. The current cursor area now uses manual locking.");
     }
 
     private void ToggleAutomatic(bool returnToGame = false)
@@ -166,7 +166,7 @@ public partial class MainWindow
         if (!Enum.TryParse<CellLayout>((string)((Button)sender).Tag, out var layout) || _attachment.Profile is not { } original) return;
         _attachment.SetLayout(layout);
         if (_attachment.Window is not null && _platform.TryClientRegion(_attachment.Window, out _)) BeginCellEdit(original);
-        else { SaveSettings(); ShowStatus("Cell layout saved. Open the remembered app to use it."); }
+        else { SaveSettings(); ShowStatus("Cursor area saved. Open the remembered app to use it."); }
     }
 
     private void BeginCellEdit(AttachmentProfile? profileSnapshot = null)
@@ -176,13 +176,13 @@ public partial class MainWindow
         var foreground = _platform.ForegroundWindow;
         _returnFocusTo = _attachment.Window?.Handle ?? (_snappedTarget != 0 ? _snappedTarget : _platform.IsUsableWindow(foreground) ? foreground : 0);
         if (_attachment.Profile is not null && (_attachment.Window is null || !_platform.TryClientRegion(_attachment.Window, out _)))
-        { ShowStatus("Open the attached app and focus it once before adjusting the cell."); return; }
+        { ShowStatus("Open the attached app and focus it once before adjusting the cursor area."); return; }
         _pending = false;
         _countdown.Reset();
         _editRegionSnapshot = _region;
         _editProfileSnapshot = profileSnapshot ?? _attachment.Profile;
         _attachment.SetEditing(true);
-        _controller.Release("Editing the cage. Your cursor is free.");
+        _controller.Release("Adjusting the cursor area. Your cursor is free.");
         if (_controller.State == JailState.ReleaseFailed) { _attachment.SetEditing(false); return; }
         _editing = true;
         _editorBounds = default;
@@ -192,7 +192,7 @@ public partial class MainWindow
         Hide();
         _overlay.SetMode(true, true);
         NativeMethods.SetForegroundWindow(_overlay.Handle);
-        ShowStatus("Adjust the cell. Done returns to the game; Esc cancels and pauses automatic locking.");
+        ShowStatus("Adjust the cursor area. Done returns to the app; Esc cancels and pauses automatic locking.");
         RefreshUi();
         RefreshTimer();
     }
@@ -207,7 +207,7 @@ public partial class MainWindow
         if (!bounds.IsValid) { if (_editing) EndCellEdit(false, false); return; }
         var cell = profile.Cell(client);
         if (!cell.IsValid)
-        { if (_editing) EndCellEdit(false, false); ShowStatus("The remembered cell is too small at this window size. Choose Match canvas or enlarge the window."); return; }
+        { if (_editing) EndCellEdit(false, false); ShowStatus("The saved cursor area is too small at this window size. Choose Full app area or enlarge the window."); return; }
         cell = cell.FitInside(bounds);
         if (_region != cell || _editorBounds != bounds)
         {

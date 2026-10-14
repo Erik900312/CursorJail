@@ -44,13 +44,13 @@ public sealed class AttachmentController(IAttachmentPlatform platform, JailContr
         _requireFreshFocus = false;
         _moving = false;
         Cell = _lastCell = null;
-        Report("Attached. The cage activates when this window has focus.");
+        Report("Attached. Cursor locking activates when this window has focus.");
         return true;
     }
 
     public void SetReady(bool ready)
     {
-        if (!ready && _ready && Profile is not null) Pause("Automatic locking paused: escape controls or focus monitoring are unavailable.");
+        if (!ready && _ready && Profile is not null) Pause("Automatic locking paused: release shortcuts or focus monitoring are unavailable.");
         _ready = ready;
     }
 
@@ -101,14 +101,14 @@ public sealed class AttachmentController(IAttachmentPlatform platform, JailContr
             || !platform.TryClientRegion(Window, out var client))
         {
             if (jail.IsArmed) jail.Release("Released. The attached window is not ready or focused.");
-            Report(_moving ? "Window is moving. The cage resumes when the move ends." : "Attached. Waiting for this app to have focus.");
+            Report(_moving ? "Window is moving. Cursor locking resumes when the move ends." : "Attached. Waiting for this app to have focus.");
             return;
         }
         var cell = Profile.Cell(client);
         if (!cell.IsValid || !platform.IsRegionAvailable(cell))
         {
-            if (jail.IsArmed) jail.Release("Released. The cell is too small or outside the desktop.");
-            Report("Waiting. Move the app onto the desktop or enlarge its cell.");
+            if (jail.IsArmed) jail.Release("Released. The cursor area is too small or outside the desktop.");
+            Report("Waiting. Move the app onto the desktop or enlarge its cursor area.");
             return;
         }
         Cell = cell;
@@ -129,7 +129,7 @@ public sealed class AttachmentController(IAttachmentPlatform platform, JailContr
             Pause("Automatic locking paused after a Windows cursor error. Resume explicitly when ready.");
             return;
         }
-        Report(jail.State == JailState.Passing ? "Parole key held. Your cursor can pass through." : "Attached and locked. Switch apps to release; return to lock again.");
+        Report(jail.State == JailState.Passing ? "Temporarily unlocked while the key or button is held." : "Attached and locked. Switch apps to release; return to lock again.");
         if (_lastCell != Cell) { _lastCell = Cell; Changed?.Invoke(); }
     }
 
@@ -151,7 +151,7 @@ public sealed class AttachmentController(IAttachmentPlatform platform, JailContr
 
     public void Detach()
     {
-        Pause("Detached. Manual cage mode is ready.");
+        Pause("Detached. Manual locking is ready.");
         Profile = null;
         Window = null;
         Cell = _lastCell = null;
@@ -162,8 +162,8 @@ public sealed class AttachmentController(IAttachmentPlatform platform, JailContr
     public void SetEditing(bool editing)
     {
         Editing = editing;
-        if (editing) jail.Release("Editing the cell. Cursor is free.");
-        Report(editing ? "Adjust the cell, then choose Done or click back into the game." : Enabled ? "Cell ready. Focus the attached app to play." : "Automatic locking is paused. Resume when ready.");
+        if (editing) jail.Release("Adjusting the cursor area. Cursor is free.");
+        Report(editing ? "Adjust the cursor area, then choose Done or click back into the app." : Enabled ? "Cursor area ready. Focus the attached app to lock." : "Automatic locking is paused. Resume when ready.");
     }
 
     public void SetLayout(CellLayout layout)

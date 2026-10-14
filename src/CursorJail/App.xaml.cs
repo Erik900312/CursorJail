@@ -26,7 +26,7 @@ public partial class App : Application
         {
             bool released = _panel?.ReleaseForExit() ?? true;
             args.Handled = true;
-            MessageBox.Show((released ? "CursorJail stopped after an error and released its cage."
+            MessageBox.Show((released ? "CursorJail stopped after an error and released the cursor."
                 : "CursorJail stopped after an error. Windows could not confirm cursor release; sign out of Windows if it remains confined.") + "\n\n" + args.Exception.Message,
                 "CursorJail", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
