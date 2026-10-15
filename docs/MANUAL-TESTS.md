@@ -3,6 +3,7 @@
 Run these on Windows before a release intended for broader use. Always keep the emergency shortcut available. Automated smoke checks do not confine the real mouse.
 
 - Launch the portable executable without a .NET runtime installed; confirm the panel and tray icon appear. A second launch should report the existing instance.
+- Drag the panel by its title, icon and blank header space, including near each side. Check Windows edge snapping, double-click maximize/restore, right-click system menu and Alt+Space Move. Tray and close buttons must still respond; body controls must not drag the panel. Repeat across monitors with different DPI and negative origins.
 - Edit a cursor area. Move it and resize every edge/corner. Check its four pixel fields, including negative monitor origins. Small cursor areas must stop at 160 × 100.
 - Attach through the icon dropdown and crosshair picker. The selection click must choose the underlying root window, never the picker, without clicking a game control. Esc/Alt+Tab cancel selection.
 - Test native-windowed and borderless canvases: exclude real native chrome, preserve full borderless height. Custom client-drawn title bars require margins.

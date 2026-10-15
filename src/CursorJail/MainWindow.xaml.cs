@@ -507,10 +507,6 @@ public partial class MainWindow : Window
     }
     private void HideToTray(object sender, RoutedEventArgs e) => Hide();
     private void ExitApp(object sender, RoutedEventArgs e) => Close();
-    private void DragTitle(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ChangedButton == MouseButton.Left && e.OriginalSource is not Button) DragMove();
-    }
     private void PanelKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape || HotkeyInput.IsKeyboardFocusWithin) return;

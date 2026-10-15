@@ -100,6 +100,7 @@ internal static class SmokeTest
         ((Button)window.FindName("LockButton")).IsEnabled = true; // Presentation only; no input loop is run.
         // Render without presenting the panel or overlay to the input desktop.
         Render(window, Path.Combine(outputDirectory, "CursorJail-panel.png"), 620, 930, 1);
+        VerifyPanelChrome(window, panel, results);
         Check(((ScrollViewer)window.FindName("PanelScroll")).ScrollableHeight < 1, "Collapsed manual panel fits without scrolling", results);
         Check(((Button)window.FindName("AttachButton")).Style == window.FindResource("Primary")
             && ((Button)window.FindName("LockButton")).Style != window.FindResource("Primary"), "Automatic setup has a single primary action", results);
@@ -124,6 +125,29 @@ internal static class SmokeTest
         Check(window.AutomaticPreferenceForSmoke, "Normal exit preserves the enabled automatic preference", results);
         File.WriteAllText(Path.Combine(outputDirectory, "results.json"), JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
     }
+    private static void VerifyPanelChrome(MainWindow window, nint panel, List<string> results)
+    {
+        // Exercise Windows' hit testing without showing the window or moving the real cursor.
+        Check(NativeMethods.GetWindowRect(panel, out var bounds), "Panel bounds available for caption hit testing", results);
+        var scale = HwndSource.FromHwnd(panel)!.CompositionTarget!.TransformToDevice;
+        int HitTest(double x, double y)
+        {
+            int screenX = bounds.Left + (int)(x * scale.M11);
+            int screenY = bounds.Top + (int)(y * scale.M22);
+            nint point = unchecked((nint)((screenX & 0xffff) | ((screenY & 0xffff) << 16)));
+            Check(NativeMethods.SendMessageTimeout(panel, 0x0084, 0, point, 2, 1000, out var hit) != 0,
+                "Native panel hit test responds", results); // WM_NCHITTEST
+            return (int)hit;
+        }
+        Check(HitTest(320, 28) == 2, "Blank header space is a native draggable caption", results); // HTCAPTION
+        Check(HitTest(90, 28) == 2, "App title is a native draggable caption", results);
+        Check(HitTest(3, 200) == 10, "Panel retains native left-edge resizing", results); // HTLEFT
+        Check(HitTest(320, 110) == 1, "Panel body remains ordinary client content", results); // HTCLIENT
+        Check(System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome((Button)window.FindName("TrayButton"))
+            && System.Windows.Shell.WindowChrome.GetIsHitTestVisibleInChrome((Button)window.FindName("CloseButton")),
+            "Tray and close buttons retain client input inside the caption", results);
+    }
+
     private static void Check(bool condition, string name, List<string> results)
     {
         if (!condition) throw new InvalidOperationException(name);

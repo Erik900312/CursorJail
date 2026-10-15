@@ -5,11 +5,11 @@
         Title="CursorJail" Width="620" Height="930" MinWidth="570" MinHeight="530"
         WindowStartupLocation="CenterScreen" WindowStyle="None" Background="#10141D"
         Icon="Assets/CursorJail.ico" PreviewKeyDown="PanelKeyDown">
-  <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="12" GlassFrameThickness="0" /></shell:WindowChrome.WindowChrome>
+  <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="54" ResizeBorderThickness="6" CornerRadius="12" GlassFrameThickness="0" /></shell:WindowChrome.WindowChrome>
   <Border Background="#10141D" TextElement.Foreground="{StaticResource Ink}" BorderBrush="#303A4B" BorderThickness="1" CornerRadius="12">
     <Grid>
       <Grid.RowDefinitions><RowDefinition Height="54" /><RowDefinition Height="*" /><RowDefinition Height="98" /></Grid.RowDefinitions>
-      <Grid Margin="22,0,14,0" MouseLeftButtonDown="DragTitle">
+      <Grid Margin="22,0,14,0">
         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Viewbox Width="30" Height="30" Margin="0,0,12,0">
@@ -18,8 +18,8 @@
           <TextBlock Text="CursorJail" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
           <TextBlock Text="v0.3.0" Foreground="#7D8A9D" FontSize="11" VerticalAlignment="Center" Margin="10,3,0,0" />
         </StackPanel>
-        <Button Grid.Column="1" Content="—" Background="Transparent" BorderThickness="0" Padding="11,5" Margin="0,0,4,0" Click="HideToTray" ToolTip="Minimize to system tray" AutomationProperties.Name="Minimize to system tray" />
-        <Button Grid.Column="2" Content="✕" Background="Transparent" BorderThickness="0" Padding="11,5" Click="ExitApp" ToolTip="Exit and release cursor" AutomationProperties.Name="Exit CursorJail" />
+        <Button x:Name="TrayButton" Grid.Column="1" Content="—" shell:WindowChrome.IsHitTestVisibleInChrome="True" Background="Transparent" BorderThickness="0" Padding="11,5" Margin="0,0,4,0" Click="HideToTray" ToolTip="Minimize to system tray" AutomationProperties.Name="Minimize to system tray" />
+        <Button x:Name="CloseButton" Grid.Column="2" Content="✕" shell:WindowChrome.IsHitTestVisibleInChrome="True" Background="Transparent" BorderThickness="0" Padding="11,5" Click="ExitApp" ToolTip="Exit and release cursor" AutomationProperties.Name="Exit CursorJail" />
       </Grid>
       <ScrollViewer x:Name="PanelScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="22,6,22,8">
         <StackPanel>
